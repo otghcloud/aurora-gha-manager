@@ -106,6 +106,19 @@ class LogEntryStorageTest extends TestCase
             ->assertSee('stored build output');
     }
 
+    public function test_the_build_log_endpoint_falls_back_to_the_stored_log(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $build = $this->build($this->directory.'/missing.log');
+        LogEntry::store($build, LogEntry::CHANNEL_BUILD, 'stored build output');
+
+        $this->getJson(route('builds.log', $build))
+            ->assertOk()
+            ->assertJsonPath('content', 'stored build output')
+            ->assertJsonPath('finished', true);
+    }
+
     public function test_the_job_log_endpoint_falls_back_to_the_stored_log(): void
     {
         $this->actingAs(User::factory()->create());

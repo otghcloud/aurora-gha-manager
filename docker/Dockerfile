@@ -31,7 +31,7 @@ ARG PACKER_VERSION=1.16.0
 ARG DEBIAN_FRONTEND=noninteractive
 # Branch, tag or commit of aurora-gha-manager-templates to bundle into the image.
 ARG TEMPLATES_REF=main
-# Released version to stamp into the image; local builds leave it unset and report dev-main.
+# Released version to burn into the image; local builds leave it unset and report dev-main.
 ARG APP_VERSION=
 
 ENV PHP_VERSION=${PHP}
@@ -90,7 +90,7 @@ ENV IMAGE_BUILDER_PATH=/opt/image-builder \
     RUNNER_IMAGES_PATH=/data/runner-images \
     TEMPLATES_INSTALL_PATH=/data/templates
 
-# Holds the SQLite database, the generated APP_KEY, build logs and any fetched runner-images trees.
+# Stores the SQLite database, the generated APP_KEY, build logs and any fetched runner-images trees.
 VOLUME ["/data"]
 
 EXPOSE 8080

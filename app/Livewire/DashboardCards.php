@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Enums\BuildStatus;
+use App\Enums\RunnerState;
 use App\Models\Builds\ImageBuild;
 use App\Models\Runners\Runner;
 use Illuminate\View\View;
@@ -18,7 +19,8 @@ class DashboardCards extends Component
         $stateCounts = Runner::query()
             ->selectRaw('state, count(*) as total')
             ->groupBy('state')
-            ->pluck('total', 'state');
+            ->pluck('total', 'state')
+            ->mapWithKeys(fn (int $total, int $state): array => [RunnerState::from($state)->name => $total]);
 
         $activeBuildsCount = ImageBuild::query()
             ->whereIn('status', [BuildStatus::Queued->value, BuildStatus::Running->value])

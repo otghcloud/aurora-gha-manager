@@ -50,13 +50,14 @@ class RunnerTimeline
      */
     private static function fromEvent(RunnerEvent $event): array
     {
-        $state = RunnerState::tryFrom((string) $event->to_state);
+        $state = $event->to_state;
+        $from = $event->from_state;
 
         return [
             'at' => $event->created_at,
             'order' => 0,
-            'title' => $state?->label() ?? ucfirst((string) $event->to_state),
-            'from' => $event->from_state,
+            'title' => $state?->label() ?? 'Unknown',
+            'from' => $from?->label(),
             'detail' => $event->reason,
             'colour' => $state?->colour() ?? 'secondary',
             'icon' => self::stateIcon($state),

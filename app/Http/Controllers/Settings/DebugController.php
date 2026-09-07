@@ -175,18 +175,18 @@ class DebugController extends Controller
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, int>
      */
     private function historicStateValues(): array
     {
-        return array_map(fn (RunnerState $state): string => $state->value, self::HISTORIC_STATES);
+        return array_map(fn (RunnerState $state): int => $state->value, self::HISTORIC_STATES);
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, int>
      */
     private function historyStateValues(): array
     {
-        return array_map(fn (RunnerState $state): string => $state->value, self::HISTORY_STATES);
+        return array_map(fn (RunnerState $state): int => $state->value, self::HISTORY_STATES);
     }
 }

@@ -32,6 +32,7 @@ class LabelPresets
                 'Windows Server 2022' => ['self-hosted', 'windows', 'x64', 'windows-2022', 'windows-latest'],
                 'Windows Server 2025' => ['self-hosted', 'windows', 'x64', 'windows-2025'],
             ],
+            PoolOs::MacOS => [],
         };
     }
 

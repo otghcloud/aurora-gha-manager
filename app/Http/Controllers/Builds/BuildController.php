@@ -54,6 +54,12 @@ class BuildController extends Controller
         $path = $imageBuild->log_path;
 
         if ($path === null || ! is_readable($path)) {
+            $stored = $imageBuild->storedLog()?->body;
+
+            if ($stored !== null) {
+                return $this->logChunk($imageBuild, $stored, $offset);
+            }
+
             return response()->json(['content' => '', 'offset' => 0, 'finished' => $imageBuild->status->isFinished()]);
         }
 
@@ -117,5 +123,24 @@ class BuildController extends Controller
         }
 
         return $build->storedLog()?->body;
+    }
+
+    private function logChunk(ImageBuild $build, string $log, int $offset): JsonResponse
+    {
+        $size = strlen($log);
+
+        if ($offset > $size) {
+            $offset = 0;
+        }
+
+        $content = substr($log, $offset, self::MAX_CHUNK_BYTES);
+
+        return response()->json([
+            'content' => $content,
+            'offset' => $offset + strlen($content),
+            'status' => $build->status->value,
+            'finished' => $build->status->isFinished() && ($offset + strlen($content)) >= $size,
+            'progress' => $this->progress->forBuild($build->fresh()),
+        ]);
     }
 }

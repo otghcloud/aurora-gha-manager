@@ -28,9 +28,9 @@ return new class extends Migration
         $this->assertKnownValues('runner_events', 'to_state', [
             'spawning', 'idle', 'busy', 'reaping', 'failed', 'destroyed',
         ], true);
-        $this->assertKnownValues('runner_templates', 'os', ['linux', 'windows']);
-        $this->assertKnownValues('credentials', 'os', ['linux', 'windows']);
-        $this->assertKnownValues('build_credentials', 'os', ['linux', 'windows']);
+        $this->assertKnownValues('runner_templates', 'os', ['linux', 'windows', 'macos']);
+        $this->assertKnownValues('credentials', 'os', ['linux', 'windows', 'macos']);
+        $this->assertKnownValues('build_credentials', 'os', ['linux', 'windows', 'macos']);
 
         $this->dropRunnerStateIndexes();
 
@@ -62,9 +62,9 @@ return new class extends Migration
         $this->replaceValues('runners', 'spawn_reason', ['job' => 0, 'warm' => 1]);
         $this->replaceValues('runner_events', 'from_state', $runnerStates);
         $this->replaceValues('runner_events', 'to_state', $runnerStates);
-        $this->replaceValues('runner_templates', 'os', ['linux' => 0, 'windows' => 1]);
-        $this->replaceValues('credentials', 'os', ['linux' => 0, 'windows' => 1]);
-        $this->replaceValues('build_credentials', 'os', ['linux' => 0, 'windows' => 1]);
+        $this->replaceValues('runner_templates', 'os', ['linux' => 0, 'windows' => 1, 'macos' => 2]);
+        $this->replaceValues('credentials', 'os', ['linux' => 0, 'windows' => 1, 'macos' => 2]);
+        $this->replaceValues('build_credentials', 'os', ['linux' => 0, 'windows' => 1, 'macos' => 2]);
 
         $this->changeColumn('image_builds', 'status', false);
         $this->changeColumn('workflow_jobs', 'conclusion', true);
@@ -105,9 +105,9 @@ return new class extends Migration
         $this->replaceValues('runners', 'spawn_reason', [0 => 'job', 1 => 'warm']);
         $this->replaceValues('runner_events', 'from_state', $runnerStates);
         $this->replaceValues('runner_events', 'to_state', $runnerStates);
-        $this->replaceValues('runner_templates', 'os', [0 => 'linux', 1 => 'windows']);
-        $this->replaceValues('credentials', 'os', [0 => 'linux', 1 => 'windows']);
-        $this->replaceValues('build_credentials', 'os', [0 => 'linux', 1 => 'windows']);
+        $this->replaceValues('runner_templates', 'os', [0 => 'linux', 1 => 'windows', 2 => 'macos']);
+        $this->replaceValues('credentials', 'os', [0 => 'linux', 1 => 'windows', 2 => 'macos']);
+        $this->replaceValues('build_credentials', 'os', [0 => 'linux', 1 => 'windows', 2 => 'macos']);
         $this->restoreRunnerStateIndexes("'destroyed'");
     }
 

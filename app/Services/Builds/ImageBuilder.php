@@ -55,9 +55,15 @@ class ImageBuilder
             ])->save();
         });
 
-        $result = $this->builderRegistry()
-            ->forType($entry->builderType())
-            ->build($build, $entry, $templateDirectory);
+        try {
+            $result = $this->builderRegistry()
+                ->forType($entry->builderType())
+                ->build($build, $entry, $templateDirectory);
+        } catch (\Throwable $e) {
+            $this->recordFailure($build, $logPath, $e);
+
+            throw $e;
+        }
 
         $this->storeLog($build, $logPath);
 
@@ -123,6 +129,17 @@ class ImageBuilder
         }
 
         LogEntry::store($build, LogEntry::CHANNEL_BUILD, $contents);
+    }
+
+    private function recordFailure(ImageBuild $build, string $logPath, \Throwable $e): void
+    {
+        file_put_contents(
+            $logPath,
+            sprintf("\n==> Build failed before completion\n%s: %s\n", $e::class, $e->getMessage()),
+            FILE_APPEND,
+        );
+
+        $this->storeLog($build, $logPath);
     }
 
     /** Return the filesystem path used for the build log. */

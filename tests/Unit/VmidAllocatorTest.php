@@ -93,21 +93,35 @@ class VmidAllocatorTest extends TestCase
         $this->assertSame(801, $vmid);
     }
 
-    public function test_runner_allocation_skips_vmids_held_by_live_runners(): void
+    public function test_runner_allocation_skips_vmids_held_by_live_or_recently_destroyed_runners(): void
     {
         $target = $this->makeTarget();
         $template = $this->makeTemplate();
 
         $this->makeRunner($template->environment_id, $target->id, 901, RunnerState::Idle);
-        $this->makeRunner($template->environment_id, $target->id, 902, RunnerState::Destroyed);
+        $this->makeRunner($template->environment_id, $target->id, 902, RunnerState::Destroyed, now()->subMinutes(2));
 
         $this->fakeCluster([]);
 
         $vmid = (new VmidAllocator(new ProxmoxClient($target)))
             ->allocate($target, 'runner', fn (int $vmid): int => $vmid);
 
-        // 901 is in use; 902 belongs to a destroyed runner and is free again.
-        $this->assertSame(902, $vmid);
+        $this->assertSame(903, $vmid);
+    }
+
+    public function test_runner_allocation_can_reuse_vmids_after_the_destroyed_runner_grace_period(): void
+    {
+        $target = $this->makeTarget();
+        $template = $this->makeTemplate();
+
+        $this->makeRunner($template->environment_id, $target->id, 901, RunnerState::Destroyed, now()->subMinutes(20));
+
+        $this->fakeCluster([]);
+
+        $vmid = (new VmidAllocator(new ProxmoxClient($target)))
+            ->allocate($target, 'runner', fn (int $vmid): int => $vmid);
+
+        $this->assertSame(901, $vmid);
     }
 
     public function test_an_exhausted_range_is_rejected_rather_than_spilling_into_the_next_one(): void
@@ -161,7 +175,7 @@ class VmidAllocatorTest extends TestCase
         ]);
     }
 
-    private function makeRunner(int $environmentId, int $targetId, int $vmid, RunnerState $state): Runner
+    private function makeRunner(int $environmentId, int $targetId, int $vmid, RunnerState $state, mixed $destroyedAt = null): Runner
     {
         return Runner::create([
             'environment_id' => $environmentId,
@@ -170,6 +184,7 @@ class VmidAllocatorTest extends TestCase
             'runner_name' => 'gha-pool-'.$vmid.'-abc',
             'state' => $state,
             'state_changed_at' => now(),
+            'destroyed_at' => $destroyedAt,
         ]);
     }
 

@@ -3,9 +3,9 @@
 namespace App\Support;
 
 use App\Enums\RunnerState;
+use App\Models\GitHub\WorkflowJob;
 use App\Models\Runners\Runner;
 use App\Models\Runners\RunnerEvent;
-use App\Models\GitHub\WorkflowJob;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 

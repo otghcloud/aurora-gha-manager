@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\BuildStatus;
 use App\Enums\RunnerState;
-use App\Models\Infrastructure\Environment;
-use App\Models\GitHub\GitHubAccount;
 use App\Models\Builds\ImageBuild;
+use App\Models\GitHub\GitHubAccount;
+use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Runners\Runner;
 use App\Models\User;

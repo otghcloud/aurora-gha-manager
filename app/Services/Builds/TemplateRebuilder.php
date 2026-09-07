@@ -4,9 +4,9 @@ namespace App\Services\Builds;
 
 use App\Enums\BuildStatus;
 use App\Jobs\BuildImageJob;
+use App\Models\Builds\ImageBuild;
 use App\Models\Credentials\BuildCredential;
 use App\Models\Credentials\Credential;
-use App\Models\Builds\ImageBuild;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Templates\RetiredTemplateVmid;
 use App\Models\Templates\RunnerTemplate;

@@ -2,8 +2,8 @@
 
 namespace App\Services\Provisioning;
 
-use App\Models\Pools\Pool;
 use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Pools\Pool;
 use App\Models\Templates\RunnerTemplate;
 use Illuminate\Database\Eloquent\Collection;
 

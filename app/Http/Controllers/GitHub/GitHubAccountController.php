@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\GitHub;
 
-use App\Http\Controllers\Controller;
 use App\DataTables\Accounts\GitHubAccountsDataTable;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\GitHub\GitHubAccountRequest;
 use App\Models\GitHub\GitHubAccount;
 use Illuminate\Http\RedirectResponse;

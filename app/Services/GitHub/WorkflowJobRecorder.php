@@ -2,12 +2,12 @@
 
 namespace App\Services\GitHub;
 
+use App\Enums\JobConclusion;
 use App\Enums\RunnerState;
 use App\Jobs\FetchWorkflowJobLogJob;
-use App\Enums\JobConclusion;
+use App\Models\GitHub\WorkflowJob;
 use App\Models\Infrastructure\Environment;
 use App\Models\Runners\Runner;
-use App\Models\GitHub\WorkflowJob;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 

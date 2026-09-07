@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\GitHub;
 
-use App\Http\Controllers\Controller;
 use App\DataTables\Jobs\WorkflowJobsDataTable;
-use App\Models\Infrastructure\Environment;
+use App\Http\Controllers\Controller;
 use App\Models\GitHub\WorkflowJob;
+use App\Models\Infrastructure\Environment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\View\View;

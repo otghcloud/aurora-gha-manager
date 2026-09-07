@@ -3,10 +3,11 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Builds\BuildController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Infrastructure\EnvironmentController;
 use App\Http\Controllers\GitHub\GitHubAccountController;
-use App\Http\Controllers\Pools\PoolController;
+use App\Http\Controllers\GitHub\WorkflowJobController;
+use App\Http\Controllers\Infrastructure\EnvironmentController;
 use App\Http\Controllers\Infrastructure\ProxmoxTargetController;
+use App\Http\Controllers\Pools\PoolController;
 use App\Http\Controllers\Runners\RunnerController;
 use App\Http\Controllers\Runners\RunnerTemplateController;
 use App\Http\Controllers\Settings\CredentialController;
@@ -18,7 +19,6 @@ use App\Http\Controllers\Settings\TemplatesController;
 use App\Http\Controllers\Settings\UserController;
 use App\Http\Controllers\Setup\SetupController;
 use App\Http\Controllers\Webhooks\WebhookController;
-use App\Http\Controllers\GitHub\WorkflowJobController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json(['status' => 'ok']))->name('healthz');

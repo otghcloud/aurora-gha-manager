@@ -73,8 +73,17 @@ class VmidAllocator
     private function reservedVmids(ProxmoxTarget $target, string $purpose): array
     {
         if ($purpose !== 'template') {
+            $reuseGraceSeconds = max(0, (int) config('runners.vmid_reuse_grace_seconds', 900));
+            $recentlyDestroyed = now()->subSeconds($reuseGraceSeconds);
+
             return Runner::where('proxmox_target_id', $target->id)
-                ->whereNot('state', RunnerState::Destroyed->value)
+                ->where(function ($query) use ($recentlyDestroyed): void {
+                    $query->whereNot('state', RunnerState::Destroyed->value)
+                        ->orWhere(function ($query) use ($recentlyDestroyed): void {
+                            $query->where('state', RunnerState::Destroyed->value)
+                                ->where('destroyed_at', '>=', $recentlyDestroyed);
+                        });
+                })
                 ->pluck('vmid')
                 ->all();
         }

@@ -1,9 +1,10 @@
 <div wire:poll.15s class="card-group mb-3">
-	@foreach (['spawning' => 'Spawning', 'idle' => 'Idle', 'busy' => 'Busy', 'failed' => 'Failed'] as $state => $label)
+	@foreach (\App\Enums\RunnerState::cases() as $state)
+		@continue($state === \App\Enums\RunnerState::Reaping || $state === \App\Enums\RunnerState::Destroyed)
 		<div class="card">
 			<div class="card-body">
-				<div class="subheader">{{ $label }}</div>
-				<div class="h1 mb-0">{{ $stateCounts[$state] ?? 0 }}</div>
+				<div class="subheader">{{ $state->label() }}</div>
+				<div class="h1 mb-0">{{ $stateCounts[$state->name] ?? 0 }}</div>
 			</div>
 		</div>
 	@endforeach

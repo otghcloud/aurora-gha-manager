@@ -112,7 +112,7 @@ return new class extends Migration
     }
 
     /**
-     * @param array<int, string> $knownValues
+     * @param  array<int, string>  $knownValues
      */
     private function assertKnownValues(string $table, string $column, array $knownValues, bool $nullable = false): void
     {
@@ -131,7 +131,7 @@ return new class extends Migration
     }
 
     /**
-     * @param array<int|string, int|string> $values
+     * @param  array<int|string, int|string>  $values
      */
     private function replaceValues(string $table, string $column, array $values): void
     {

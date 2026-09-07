@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pools\Pool;
-use App\Models\Infrastructure\ProxmoxTarget;
-use App\Models\Runners\Runner;
 use App\Models\GitHub\WorkflowJob;
+use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Pools\Pool;
+use App\Models\Runners\Runner;
 use App\Services\Builds\TemplateCatalog;
 use App\Services\SettingsRepository;
 use Illuminate\Http\RedirectResponse;

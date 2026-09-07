@@ -2,14 +2,13 @@
 
 namespace App\Models\Builds;
 
+use App\Enums\BuildStatus;
 use App\Models\Credentials\BuildCredential;
 use App\Models\Credentials\Credential;
-use App\Models\User;
 use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Templates\RunnerTemplate;
-use App\Models\Builds\LogEntry;
-use App\Enums\BuildStatus;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

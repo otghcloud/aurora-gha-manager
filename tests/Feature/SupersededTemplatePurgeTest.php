@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\RunnerState;
-use App\Models\Infrastructure\Environment;
 use App\Models\GitHub\GitHubAccount;
-use App\Models\Pools\Pool;
+use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
-use App\Models\Templates\RetiredTemplateVmid;
+use App\Models\Pools\Pool;
 use App\Models\Runners\Runner;
+use App\Models\Templates\RetiredTemplateVmid;
 use App\Models\Templates\RunnerTemplate;
 use App\Models\User;
 use App\Services\SettingsRepository;

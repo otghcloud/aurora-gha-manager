@@ -3,8 +3,8 @@
 namespace App\Services\Templates;
 
 use App\Enums\RunnerState;
-use App\Models\Templates\RetiredTemplateVmid;
 use App\Models\Runners\Runner;
+use App\Models\Templates\RetiredTemplateVmid;
 use App\Services\Proxmox\ProxmoxClient;
 use App\Services\SettingsRepository;
 use Illuminate\Support\Facades\Log;

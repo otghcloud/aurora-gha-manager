@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Infrastructure\Environment;
 use App\Models\GitHub\GitHubAccount;
+use App\Models\Infrastructure\Environment;
 use App\Models\Templates\RunnerTemplate;
 use App\Models\User;
 use App\Services\SettingsRepository;

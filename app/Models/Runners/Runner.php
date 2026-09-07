@@ -2,12 +2,12 @@
 
 namespace App\Models\Runners;
 
+use App\Enums\RunnerState;
+use App\Enums\SpawnReason;
 use App\Models\GitHub\WorkflowJob;
 use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Pools\Pool;
-use App\Enums\RunnerState;
-use App\Enums\SpawnReason;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

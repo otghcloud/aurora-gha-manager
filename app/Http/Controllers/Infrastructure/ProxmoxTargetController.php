@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Infrastructure;
 
-use App\Http\Controllers\Controller;
 use App\DataTables\Targets\ProxmoxTargetsDataTable;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Infrastructure\ProxmoxTargetRequest;
 use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;

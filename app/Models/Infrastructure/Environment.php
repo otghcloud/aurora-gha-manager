@@ -2,8 +2,8 @@
 
 namespace App\Models\Infrastructure;
 
-use App\Models\Concerns\HasBreadcrumbLabel;
 use App\Models\Builds\ImageBuild;
+use App\Models\Concerns\HasBreadcrumbLabel;
 use App\Models\GitHub\GitHubAccount;
 use App\Models\Pools\Pool;
 use App\Models\Runners\Runner;

@@ -3,7 +3,6 @@
 namespace App\Models\Runners;
 
 use App\Enums\RunnerState;
-use App\Models\Runners\Runner;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

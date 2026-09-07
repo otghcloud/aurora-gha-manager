@@ -2,9 +2,9 @@
 
 namespace App\Models\Credentials;
 
+use App\Enums\PoolOs;
 use App\Models\Builds\ImageBuild;
 use App\Models\Templates\RunnerTemplate;
-use App\Enums\PoolOs;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;

@@ -3,12 +3,12 @@
 namespace App\Models\Templates;
 
 use App\Enums\PoolOs;
+use App\Models\Builds\ImageBuild;
 use App\Models\Concerns\HasBreadcrumbLabel;
 use App\Models\Credentials\Credential;
 use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Pools\Pool;
-use App\Models\Builds\ImageBuild;
 use App\Services\Builds\TemplateCatalog;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Infrastructure\Environment;
 use App\Models\GitHub\GitHubAccount;
+use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Services\Provisioning\EnvironmentServices;
 use Illuminate\Foundation\Testing\RefreshDatabase;

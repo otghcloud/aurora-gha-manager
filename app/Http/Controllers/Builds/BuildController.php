@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Builds;
 
-use App\Http\Controllers\Controller;
 use App\DataTables\Builds\BuildsDataTable;
+use App\Http\Controllers\Controller;
 use App\Models\Builds\ImageBuild;
 use App\Services\Builds\BuildCanceller;
 use App\Services\Builds\BuildProgress;

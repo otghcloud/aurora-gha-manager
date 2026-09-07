@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\DataTables\Runners\RecentRunnersDataTable;
 use App\Enums\RunnerState;
-use App\Models\Infrastructure\Environment;
 use App\Models\GitHub\GitHubAccount;
+use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Runners\Runner;
 use Illuminate\Foundation\Testing\RefreshDatabase;

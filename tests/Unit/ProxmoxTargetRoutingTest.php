@@ -3,10 +3,10 @@
 namespace Tests\Unit;
 
 use App\Enums\PoolOs;
-use App\Models\Infrastructure\Environment;
 use App\Models\GitHub\GitHubAccount;
-use App\Models\Pools\Pool;
+use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Pools\Pool;
 use App\Models\Templates\RunnerTemplate;
 use App\Services\Provisioning\TargetSelector;
 use Illuminate\Foundation\Testing\RefreshDatabase;

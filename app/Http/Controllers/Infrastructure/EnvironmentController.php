@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Infrastructure;
 
-use App\Http\Controllers\Controller;
 use App\DataTables\EnvironmentsDataTable;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Infrastructure\EnvironmentRequest;
-use App\Models\Infrastructure\Environment;
 use App\Models\GitHub\GitHubAccount;
+use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;

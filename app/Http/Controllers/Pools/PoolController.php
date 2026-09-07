@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Pools;
 
-use App\Http\Controllers\Controller;
 use App\DataTables\Pools\PoolsDataTable;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Pools\PoolRequest;
 use App\Models\Infrastructure\Environment;
-use App\Models\Pools\Pool;
 use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Pools\Pool;
 use App\Models\Templates\RunnerTemplate;
 use App\Support\LabelPresets;
 use Illuminate\Http\RedirectResponse;

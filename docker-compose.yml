@@ -1,0 +1,18 @@
+services:
+  aurora-gha-manager:
+    image: ghcr.io/otghcloud/aurora-gha-manager/aurora-gha-manager:latest
+    # Swap the image line for this to build from a local checkout.
+    #build:
+    #  context: .
+    #  dockerfile: docker/Dockerfile
+    container_name: aurora-gha-manager
+    restart: unless-stopped
+    # The controller must reach the Proxmox API
+    network_mode: host
+    environment:
+      APP_URL: https://runners.example.com
+    volumes:
+      - aurora-gha-manager-data:/data
+
+volumes:
+  aurora-gha-manager-data:

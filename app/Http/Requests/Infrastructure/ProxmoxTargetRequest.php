@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Http\Requests\Infrastructure;
+
+use App\Models\Infrastructure\ProxmoxTarget;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+/**
+ * Validates Proxmox target connection and capacity settings.
+ */
+class ProxmoxTargetRequest extends FormRequest
+{
+    /** Allow authenticated administrators to submit Proxmox target changes. */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    /** @return array<string, mixed> Validation rules for target configuration. */
+    public function rules(): array
+    {
+        $target = $this->route('target');
+        $isPasswordAuth = $this->input('proxmox_auth_realm') === ProxmoxTarget::AUTH_REALM_PASSWORD;
+
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'required', 'string', 'max:255', 'alpha_dash',
+                Rule::unique('proxmox_targets', 'slug')->ignore($target),
+            ],
+            'proxmox_url' => ['required', 'url', 'max:255'],
+            'proxmox_node' => ['required', 'string', 'max:255'],
+            'proxmox_auth_realm' => ['required', Rule::in([ProxmoxTarget::AUTH_REALM_API_TOKEN, ProxmoxTarget::AUTH_REALM_PASSWORD])],
+            'proxmox_token_id' => [$isPasswordAuth ? 'nullable' : 'required', 'string', 'max:255'],
+            'proxmox_token_secret' => [$isPasswordAuth || $target !== null ? 'nullable' : 'required', 'string'],
+            'proxmox_username' => [$isPasswordAuth ? 'required' : 'nullable', 'string', 'max:255'],
+            'proxmox_password' => [$isPasswordAuth && $target === null ? 'required' : 'nullable', 'string'],
+            'proxmox_verify_tls' => ['boolean'],
+            'proxmox_ca_bundle' => ['nullable', 'string', 'max:255'],
+            'proxmox_resource_pool' => ['nullable', 'string', 'max:255'],
+            'enabled' => ['boolean'],
+            'drained' => ['boolean'],
+            'max_total_vms' => ['required', 'integer', 'min:1'],
+            'template_vmid_range_start' => ['required', 'integer', 'min:100'],
+            'template_vmid_range_end' => ['required', 'integer', 'gt:template_vmid_range_start'],
+            'runner_vmid_range_start' => ['required', 'integer', 'min:100'],
+            'runner_vmid_range_end' => ['required', 'integer', 'gt:runner_vmid_range_start'],
+            'build_iso_storage' => ['nullable', 'string', 'max:255'],
+            'build_vm_storage' => ['nullable', 'string', 'max:255'],
+            'build_cpu_type' => ['nullable', 'string', 'max:255'],
+            'network_bridge' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z][A-Za-z0-9_.-]*$/'],
+            'vlan_tag' => ['nullable', 'integer', 'min:1', 'max:4094'],
+        ];
+    }
+
+    /** Normalize authentication fields before validation. */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'enabled' => $this->boolean('enabled'),
+            'proxmox_verify_tls' => $this->boolean('proxmox_verify_tls'),
+            'proxmox_auth_realm' => $this->filled('proxmox_auth_realm')
+                ? $this->input('proxmox_auth_realm')
+                : ProxmoxTarget::AUTH_REALM_API_TOKEN,
+            'network_bridge' => $this->filled('network_bridge') ? trim((string) $this->input('network_bridge')) : 'vmbr0',
+            'vlan_tag' => $this->filled('vlan_tag') ? $this->input('vlan_tag') : null,
+            'slug' => $this->filled('slug')
+                ? $this->string('slug')->slug()->toString()
+                : $this->string('name')->slug()->toString(),
+        ]);
+    }
+}

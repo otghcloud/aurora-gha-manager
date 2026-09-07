@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Http\Controllers\Settings;
+
+use App\Http\Controllers\Controller;
+use App\Models\Pools\Pool;
+use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Runners\Runner;
+use App\Models\GitHub\WorkflowJob;
+use App\Services\Builds\TemplateCatalog;
+use App\Services\SettingsRepository;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+/**
+ * Manages general application settings and status information.
+ */
+class GeneralController extends Controller
+{
+    public function __construct(private readonly SettingsRepository $settings) {}
+
+    /** Display general application status and catalog information. */
+    public function overview(TemplateCatalog $catalog): View
+    {
+        return view('pages.settings.overview', [
+            'settings' => $this->settings->all(),
+            'templatesVersion' => $catalog->imageBuilderVersion(),
+            'nodeCount' => ProxmoxTarget::count(),
+            'poolCount' => Pool::count(),
+            'runnerCount' => Runner::count(),
+            'jobCount' => WorkflowJob::count(),
+        ]);
+    }
+
+    /** Display general application settings. */
+    public function application(): View
+    {
+        return view('pages.settings.application', [
+            'settings' => $this->settings->all(),
+        ]);
+    }
+
+    /** Persist general application settings. */
+    public function updateApplication(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'app_url' => ['required', 'url'],
+            'timezone' => ['required', 'string', Rule::in(timezone_identifiers_list())],
+        ]);
+
+        $this->settings->setMany([
+            'app_url' => rtrim($validated['app_url'], '/'),
+            'timezone' => $validated['timezone'],
+        ]);
+
+        return redirect()
+            ->route('settings.application')
+            ->with('success', 'Application settings saved.');
+    }
+}

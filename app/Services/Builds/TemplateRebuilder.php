@@ -1,0 +1,192 @@
+<?php
+
+namespace App\Services\Builds;
+
+use App\Enums\BuildStatus;
+use App\Jobs\BuildImageJob;
+use App\Models\Credentials\BuildCredential;
+use App\Models\Credentials\Credential;
+use App\Models\Builds\ImageBuild;
+use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Templates\RetiredTemplateVmid;
+use App\Models\Templates\RunnerTemplate;
+use App\Services\Provisioning\VmidAllocator;
+use App\Services\Proxmox\ProxmoxClient;
+use App\Services\SettingsRepository;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+/**
+ * Builds templates into a freshly allocated VMID and swaps the pool references once they succeed,
+ * so a rebuild never has to destroy the image that runners are still being cloned from.
+ */
+/**
+ * Coordinates rebuilding runner templates and replacing their target mappings.
+ */
+class TemplateRebuilder
+{
+    public const MODE_SEQUENTIAL = 'sequential';
+
+    public const MODE_PARALLEL = 'parallel';
+
+    public function __construct(private readonly TemplateCatalog $catalog = new TemplateCatalog) {}
+
+    /**
+     * Queue a build per node. Sequential batches only dispatch the first; the rest follow as each
+     * one succeeds.
+     *
+     * @param  Collection<int, ProxmoxTarget>  $targets
+     * @return Collection<int, ImageBuild>
+     */
+    public function queue(
+        RunnerTemplate $template,
+        Collection $targets,
+        string $mode,
+        ?int $userId = null,
+        ?string $builder = null,
+    ): Collection {
+        $batchId = $targets->count() > 1 ? (string) Str::uuid() : null;
+
+        $builds = $targets->values()->map(fn (ProxmoxTarget $target, int $index): ImageBuild => $this->reserve($template, $target, $userId, $batchId, $index, $builder));
+
+        if ($mode === self::MODE_SEQUENTIAL && $batchId !== null) {
+            BuildImageJob::dispatch($builds->first()->id);
+
+            return $builds;
+        }
+
+        $builds->each(fn (ImageBuild $build) => BuildImageJob::dispatch($build->id));
+
+        return $builds;
+    }
+
+    /**
+     * Create the build record inside the VMID lock so the reservation is visible before it lifts.
+     */
+    private function reserve(
+        RunnerTemplate $template,
+        ProxmoxTarget $target,
+        ?int $userId,
+        ?string $batchId,
+        int $index,
+        ?string $builder,
+    ): ImageBuild {
+        $entry = $this->catalog->entryForId($template->template_catalog_id, $builder);
+
+        if ($entry === null) {
+            throw new \RuntimeException('The template is not present in the installed catalog.');
+        }
+
+        if (! $entry->isBuildable()) {
+            throw new \RuntimeException($entry->disabledReason() ?: 'The selected template builder is not buildable.');
+        }
+
+        return (new VmidAllocator(new ProxmoxClient($target)))->allocate(
+            $target,
+            'template',
+            function (int $vmid) use ($template, $target, $userId, $entry, $batchId, $index): ImageBuild {
+                $credential = $template->credential ?: Credential::query()->where('name', 'Default Linux SSH')->first();
+                if ($credential === null || ! $credential->hasAuthenticationMaterial()) {
+                    throw new \RuntimeException('The template has no usable runner credential.');
+                }
+
+                $build = ImageBuild::create([
+                    'environment_id' => $template->environment_id,
+                    'runner_template_id' => $template->id,
+                    'credential_id' => $credential->id,
+                    'proxmox_target_id' => $target->id,
+                    'triggered_by' => $userId,
+                    'template_catalog_id' => $entry->id(),
+                    'builder_type' => $entry->builderType(),
+                    'status' => BuildStatus::Queued,
+                    'template_vmid' => $vmid,
+                    'version' => $entry->version(),
+                    'rebuild_batch_id' => $batchId,
+                    'sequence' => $index,
+                ]);
+
+                BuildCredential::create([
+                    'image_build_id' => $build->id,
+                    'credential_id' => $credential->id,
+                    'os' => $credential->os,
+                    'username' => $credential->resolvedUsername(app(SettingsRepository::class)->defaultRunnerUsername()),
+                    'password' => $credential->password,
+                    'private_key' => $credential->private_key,
+                    'public_key' => $credential->public_key,
+                ]);
+
+                return $build;
+            },
+        );
+    }
+
+    /**
+     * Point the template's node mapping at the VMID this build produced and retire the old one.
+     */
+    public function promote(ImageBuild $build, int $vmid): void
+    {
+        DB::transaction(function () use ($build, $vmid): void {
+            $template = $build->runnerTemplate;
+            $mapping = $template->targetMappings()->whereKey($build->proxmox_target_id)->firstOrFail();
+            $previous = $mapping->pivot->template_vmid;
+            $generation = (int) $mapping->pivot->generation + 1;
+            $version = $build->version ?? $this->catalog->entryForId($build->template_catalog_id)?->version();
+
+            if ($previous !== null && (int) $previous !== $vmid) {
+                RetiredTemplateVmid::create([
+                    'runner_template_id' => $template->id,
+                    'proxmox_target_id' => $build->proxmox_target_id,
+                    'vmid' => $previous,
+                    'generation' => $mapping->pivot->generation,
+                    'retired_at' => now(),
+                ]);
+            }
+
+            $template->targetMappings()->updateExistingPivot($mapping->id, [
+                'template_vmid' => $vmid,
+                'generation' => $generation,
+                'version' => $version,
+                'availability_status' => 'available',
+                'last_built_at' => now(),
+            ]);
+        });
+    }
+
+    /**
+     * Move a sequential batch on, or abandon the nodes still waiting when a build fails.
+     */
+    public function advanceBatch(ImageBuild $build): void
+    {
+        if ($build->rebuild_batch_id === null) {
+            return;
+        }
+
+        $remaining = ImageBuild::where('rebuild_batch_id', $build->rebuild_batch_id)
+            ->where('status', BuildStatus::Queued->value)
+            ->where('sequence', '>', $build->sequence)
+            ->orderBy('sequence')
+            ->get();
+
+        if ($remaining->isEmpty()) {
+            return;
+        }
+
+        if ($build->status === BuildStatus::Succeeded) {
+            BuildImageJob::dispatch($remaining->first()->id);
+
+            return;
+        }
+
+        Log::warning('Cancelling the rest of a template rebuild batch after a failure', [
+            'batch' => $build->rebuild_batch_id,
+            'failed_build' => $build->id,
+        ]);
+
+        $remaining->each(fn (ImageBuild $pending) => $pending->forceFill([
+            'status' => BuildStatus::Cancelled,
+            'finished_at' => now(),
+        ])->save());
+    }
+}

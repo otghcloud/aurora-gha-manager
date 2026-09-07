@@ -1,0 +1,272 @@
+<?php
+
+namespace App\Http\Controllers\Runners;
+
+use App\Http\Controllers\Controller;
+use App\DataTables\Templates\RunnerTemplatesDataTable;
+use App\Enums\BuildStatus;
+use App\Enums\PoolOs;
+use App\Enums\RunnerState;
+use App\Http\Requests\Runners\RunnerTemplateBuildRequest;
+use App\Http\Requests\Runners\RunnerTemplateRequest;
+use App\Models\Credentials\Credential;
+use App\Models\Infrastructure\Environment;
+use App\Models\Builds\ImageBuild;
+use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Templates\RetiredTemplateVmid;
+use App\Models\Runners\Runner;
+use App\Models\Templates\RunnerTemplate;
+use App\Services\Builds\ImageBuilder;
+use App\Services\Builds\TemplateCatalog;
+use App\Services\Builds\TemplateRebuilder;
+use App\Services\Proxmox\ProxmoxClient;
+use App\Services\Templates\TemplatePruner;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+use Throwable;
+
+/**
+ * Manages runner templates, builds, rebuilds, and target mappings.
+ */
+class RunnerTemplateController extends Controller
+{
+    public function __construct(
+        private readonly TemplateRebuilder $rebuilder,
+        private readonly TemplateCatalog $catalog,
+    ) {}
+
+    /** Display runner templates. */
+    public function index(RunnerTemplatesDataTable $dataTable): mixed
+    {
+        return $dataTable->render('pages.templates.index');
+    }
+
+    /** Display the runner template creation form. */
+    public function create(): View
+    {
+        return view('pages.templates.create', $this->formData(new RunnerTemplate(['os' => PoolOs::Linux])));
+    }
+
+    /** Persist a new runner template and its mappings. */
+    public function store(RunnerTemplateRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $targetIds = $data['target_ids'] ?? [];
+        $mappings = $data['mappings'] ?? [];
+        unset($data['target_ids'], $data['mappings']);
+
+        $template = RunnerTemplate::create($data);
+        $this->syncMappings($template, $targetIds, $mappings);
+
+        return redirect()
+            ->route('templates.show', $template)
+            ->with('success', "Template {$template->name} created.");
+    }
+
+    /** Display a runner template and build status. */
+    public function show(RunnerTemplate $runnerTemplate): View
+    {
+        $runnerTemplate->load([
+            'environment',
+            'pools.proxmoxTargets',
+            'imageBuilds' => fn ($query) => $query->orderByDesc('id'),
+            'imageBuilds.proxmoxTarget',
+            'targetMappings',
+        ]);
+        $buildingTargetIds = $runnerTemplate->imageBuilds()
+            ->whereIn('status', [BuildStatus::Queued->value, BuildStatus::Running->value])
+            ->pluck('proxmox_target_id')
+            ->mapWithKeys(fn ($id): array => [(int) $id => true])
+            ->all();
+
+        $retiredVmids = RetiredTemplateVmid::with('proxmoxTarget')
+            ->where('runner_template_id', $runnerTemplate->id)
+            ->whereNull('deleted_at')
+            ->orderByDesc('retired_at')
+            ->get();
+
+        return view('pages.templates.show', [
+            'template' => $runnerTemplate,
+            'catalogEntry' => $this->catalog->entryForId($runnerTemplate->template_catalog_id),
+            'targets' => $runnerTemplate->targetMappings,
+            'buildingTargetIds' => $buildingTargetIds,
+            'buildableTargets' => $runnerTemplate->buildableTargets(),
+            'retiredVmids' => $retiredVmids,
+            'retiredUsage' => $retiredVmids->mapWithKeys(fn (RetiredTemplateVmid $retired): array => [
+                $retired->id => Runner::where('proxmox_target_id', $retired->proxmox_target_id)
+                    ->where('source_template_vmid', $retired->vmid)
+                    ->whereNot('state', RunnerState::Destroyed->value)
+                    ->count(),
+            ])->all(),
+        ]);
+    }
+
+    /** Display the runner template edit form. */
+    public function edit(RunnerTemplate $runnerTemplate): View
+    {
+        return view('pages.templates.edit', $this->formData($runnerTemplate));
+    }
+
+    /** Update a runner template and its mappings. */
+    public function update(RunnerTemplateRequest $request, RunnerTemplate $runnerTemplate): RedirectResponse
+    {
+        $data = $request->validated();
+        $targetIds = $data['target_ids'] ?? [];
+        $mappings = $data['mappings'] ?? [];
+        unset($data['target_ids'], $data['mappings']);
+
+        $runnerTemplate->update($data);
+        $this->syncMappings($runnerTemplate, $targetIds, $mappings);
+
+        return redirect()
+            ->route('templates.show', $runnerTemplate)
+            ->with('success', 'Template updated.');
+    }
+
+    private function syncMappings(RunnerTemplate $template, array $targetIds, array $mappings): void
+    {
+        DB::transaction(function () use ($template, $targetIds, $mappings): void {
+            $pivot = [];
+            foreach ($targetIds as $targetId) {
+                $pivot[$targetId] = $mappings[$targetId] ?? [];
+            }
+            $template->targetMappings()->sync($pivot);
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formData(RunnerTemplate $template): array
+    {
+        return [
+            'template' => $template,
+            'environments' => Environment::orderBy('name')->get(),
+            'targets' => ProxmoxTarget::orderBy('name')->get(),
+            'catalogTemplates' => $this->catalog->templates(),
+            'credentials' => Credential::orderBy('os')->orderBy('name')->get(),
+        ];
+    }
+
+    /** Delete a runner template and eligible dependent records. */
+    public function destroy(RunnerTemplate $runnerTemplate): RedirectResponse
+    {
+        $runnerTemplate->delete();
+
+        return redirect()
+            ->route('templates.index')
+            ->with('success', 'Template deleted.');
+    }
+
+    /** Queue a build for a runner template and optional target. */
+    public function build(RunnerTemplateBuildRequest $request, RunnerTemplate $runnerTemplate, ?ProxmoxTarget $target = null): RedirectResponse
+    {
+        $targets = $target !== null
+            ? $runnerTemplate->targetMappings()->whereKey($target->id)->get()
+            : $runnerTemplate->targetMappings()->whereIn('proxmox_targets.id', $request->targetIds())->get();
+
+        foreach ($targets as $node) {
+            if ($node->pivot->build_iso_file !== null || ! is_string($node->pivot->build_iso_url) || $node->pivot->build_iso_url === '') {
+                continue;
+            }
+
+            if ($node->build_iso_storage === null) {
+                return back()->with('error', "Set the build ISO storage on {$node->name} before downloading its installation ISO.");
+            }
+
+            try {
+                $isoFile = (new ProxmoxClient($node))->downloadIso($node->build_iso_storage, $node->pivot->build_iso_url);
+                $runnerTemplate->targetMappings()->updateExistingPivot($node->id, ['build_iso_file' => $isoFile]);
+                $node->pivot->build_iso_file = $isoFile;
+            } catch (Throwable $e) {
+                return back()->with('error', "Could not download the installation ISO for {$node->name}: {$e->getMessage()}");
+            }
+        }
+
+        $targets = $targets->filter(fn (ProxmoxTarget $node): bool => $node->pivot->build_iso_file !== null);
+
+        $catalogEntry = $this->catalog->entryForId($runnerTemplate->template_catalog_id, $request->builder());
+
+        if ($targets->isEmpty() || $catalogEntry === null) {
+            return back()->with('error', 'Configure a build target and an installation ISO for at least one node before building.');
+        }
+
+        if (! $catalogEntry->isBuildable()) {
+            return back()->with('error', $catalogEntry->disabledReason() ?? 'The selected template is not buildable.');
+        }
+
+        if (! ImageBuilder::isAvailable()) {
+            return back()->with('error', 'The image builder templates are not present in this installation.');
+        }
+
+        $misconfigured = $targets->first(fn (ProxmoxTarget $node): bool => $node->build_iso_storage === null || $node->build_vm_storage === null);
+
+        if ($misconfigured !== null) {
+            return back()->with('error', "Set the build ISO and VM storage on {$misconfigured->name} before building.");
+        }
+
+        $running = ImageBuild::where('runner_template_id', $runnerTemplate->id)
+            ->whereIn('proxmox_target_id', $targets->pluck('id'))
+            ->whereIn('status', [BuildStatus::Queued->value, BuildStatus::Running->value])
+            ->exists();
+
+        if ($running) {
+            return back()->with('error', 'A build for this template is already in progress.');
+        }
+
+        try {
+            $builds = $this->rebuilder->queue($runnerTemplate, $targets, $request->mode(), auth()->id(), $request->builder());
+        } catch (Throwable $e) {
+            return back()->with('error', 'Could not reserve a template VMID: '.$e->getMessage());
+        }
+
+        if ($builds->count() === 1) {
+            return redirect()
+                ->route('builds.show', $builds->first())
+                ->with('success', 'Template build was successfully queued.');
+        }
+
+        return redirect()
+            ->route('templates.show', $runnerTemplate)
+            ->with('success', "Queued {$builds->count()} builds ({$request->mode()}). Each node keeps serving its current template until its rebuild succeeds.");
+    }
+
+    /** Purge one superseded template VMID when it is no longer in use. */
+    public function purgeSuperseded(RunnerTemplate $runnerTemplate, RetiredTemplateVmid $retired, TemplatePruner $pruner): RedirectResponse
+    {
+        if ($retired->runner_template_id !== $runnerTemplate->id || $retired->deleted_at !== null) {
+            return back()->with('error', 'That superseded template is no longer available to purge.');
+        }
+
+        if ($pruner->stillInUse($retired)) {
+            return back()->with('error', "VMID {$retired->vmid} still has runners cloned from it, so it was not purged.");
+        }
+
+        if (! $pruner->purge($retired)) {
+            return back()->with('error', "Could not destroy VMID {$retired->vmid}. Check the logs for details.");
+        }
+
+        return back()->with('success', "Purged superseded template VMID {$retired->vmid}.");
+    }
+
+    /** Purge all superseded template VMIDs that are safe to remove. */
+    public function purgeAllSuperseded(RunnerTemplate $runnerTemplate, TemplatePruner $pruner): RedirectResponse
+    {
+        $result = $pruner->purgeForTemplate($runnerTemplate->id);
+
+        if ($result['purged'] === 0) {
+            return back()->with('error', $result['skipped'] > 0
+                ? 'Nothing was purged; every superseded template is still in use or could not be destroyed.'
+                : 'There was nothing to purge.');
+        }
+
+        $message = "Purged {$result['purged']} superseded template(s).";
+
+        if ($result['skipped'] > 0) {
+            $message .= " {$result['skipped']} were skipped because they are still in use.";
+        }
+
+        return back()->with('success', $message);
+    }
+}

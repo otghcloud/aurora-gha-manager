@@ -1,0 +1,94 @@
+name: Docker smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: smoke:docker
+    runs-on: ['self-hosted', 'ubuntu-latest']
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          submodules: false
+
+      - name: Build manager image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: aurora-gha-manager:smoke
+
+      - name: Check the bundled template catalog is usable
+        run: |
+          docker run --rm --entrypoint php aurora-gha-manager:smoke -r '
+            $root = "/opt/image-builder";
+            $catalog = "$root/templates.json";
+
+            if (! is_file($catalog)) {
+                fwrite(STDERR, "Bundled catalog is missing: $catalog\n");
+                exit(1);
+            }
+
+            $missing = 0;
+
+            // Stage scripts are referenced relative to their manifest. A bundle missing one
+            // only fails once a build reaches that stage, so check it at image build time.
+            foreach (glob("$root/templates/*/*/*/build.json") as $manifest) {
+                $data = json_decode(file_get_contents($manifest), true);
+
+                foreach ($data["stage_groups"] ?? [] as $group) {
+                    foreach ($group["stages"] ?? [] as $stage) {
+                        if (! isset($stage["script"])) {
+                            continue;
+                        }
+
+                        $path = dirname($manifest) . "/" . $stage["script"];
+
+                        if (! is_file($path)) {
+                            fwrite(STDERR, "$manifest: missing stage script {$stage["script"]}\n");
+                            $missing++;
+                        }
+                    }
+                }
+            }
+
+            if ($missing > 0) {
+                exit(1);
+            }
+
+            $templates = count(json_decode(file_get_contents($catalog), true)["templates"] ?? []);
+            echo "Bundled catalog: $templates templates, stage scripts intact\n";
+          '
+
+      - name: Start manager
+        run: |
+          docker volume create aurora-gha-manager-smoke-data
+          docker run -d --name aurora-gha-manager-smoke \
+            --network host \
+            -v aurora-gha-manager-smoke-data:/data \
+            -e APP_URL=http://127.0.0.1:8080 \
+            -e TRUSTED_PROXIES='*' \
+            aurora-gha-manager:smoke
+
+      - name: Check health endpoint
+        run: |
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:8080/healthz && exit 0
+            sleep 2
+          done
+          docker logs aurora-gha-manager-smoke
+          exit 1
+
+      - name: Show manager logs
+        if: always()
+        run: docker logs aurora-gha-manager-smoke
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f aurora-gha-manager-smoke || true

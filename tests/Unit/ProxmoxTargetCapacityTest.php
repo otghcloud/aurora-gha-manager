@@ -1,0 +1,95 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Models\Infrastructure\ProxmoxTarget;
+use App\Services\Health\HealthCheckService;
+use App\Services\Proxmox\ProxmoxClient;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+class ProxmoxTargetCapacityTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_the_network_adapter_reflects_the_nodes_bridge_and_vlan(): void
+    {
+        $target = new ProxmoxTarget(['network_bridge' => 'vmbr1', 'vlan_tag' => 120]);
+
+        $this->assertSame('virtio,bridge=vmbr1,tag=120', $target->networkAdapter());
+
+        $target->vlan_tag = null;
+
+        $this->assertSame('virtio,bridge=vmbr1', $target->networkAdapter());
+    }
+
+    public function test_target_vm_filtering_only_counts_node_specific_managed_or_pool_vms(): void
+    {
+        $target = ProxmoxTarget::create([
+            'name' => 'LD PVE02',
+            'slug' => 'ld-pve02',
+            'proxmox_url' => 'https://pve02.example.com:8006/api2/json',
+            'proxmox_node' => 'pve04',
+            'proxmox_resource_pool' => 'gha-runners',
+            'proxmox_token_id' => 'root@pam!token',
+            'proxmox_token_secret' => 'token-secret',
+            'max_total_vms' => 12,
+            'current_vm_count' => 54,
+        ]);
+
+        $clusterResources = [
+            // VM on different node in cluster -> should be ignored
+            ['vmid' => 101, 'node' => 'pve01', 'pool' => 'gha-runners', 'name' => 'gha-pve01-101'],
+            // Non-managed VM on same node outside pool -> should be ignored
+            ['vmid' => 201, 'node' => 'pve04', 'pool' => 'other-pool', 'name' => 'unrelated-vm'],
+            // VM template on same node in pool -> should be ignored
+            ['vmid' => 801, 'node' => 'pve04', 'pool' => 'gha-runners', 'name' => 'tmpl-ubuntu2404', 'template' => 1],
+            // Managed runner VM on same node in pool -> should be counted
+            ['vmid' => 901, 'node' => 'pve04', 'pool' => 'gha-runners', 'name' => 'gha-ubuntu2404-901-abc', 'tags' => 'gha-runner'],
+        ];
+
+        $client = new ProxmoxClient($target);
+        $filtered = $client->filterTargetVms($clusterResources, $target);
+
+        $this->assertCount(1, $filtered);
+        $this->assertArrayHasKey(901, $filtered);
+
+        Http::fake([
+            'https://pve02.example.com:8006/api2/json/cluster/resources*' => Http::response(['data' => $clusterResources]),
+        ]);
+
+        $health = new HealthCheckService;
+        $this->assertTrue($health->checkTarget($target));
+
+        $target->refresh();
+        $this->assertSame(1, $target->current_vm_count);
+        $this->assertSame('healthy', $target->health_status);
+    }
+
+    public function test_a_missing_catalog_iso_is_downloaded_to_the_nodes_iso_storage(): void
+    {
+        $target = ProxmoxTarget::create([
+            'name' => 'PVE 02',
+            'slug' => 'pve-02',
+            'proxmox_url' => 'https://pve02.example.com:8006/api2/json',
+            'proxmox_node' => 'pve02',
+            'proxmox_token_id' => 'root@pam!token',
+            'proxmox_token_secret' => 'token-secret',
+        ]);
+
+        Http::fake([
+            '*/storage/local/content*' => Http::response(['data' => []]),
+            '*/storage/local/download-url' => Http::response(['data' => 'UPID:pve02:download']),
+            '*/tasks/*' => Http::response(['data' => ['status' => 'stopped', 'exitstatus' => 'OK']]),
+            '*/storage*' => Http::response(['data' => [['storage' => 'local', 'enabled' => 1]]]),
+        ]);
+
+        $iso = (new ProxmoxClient($target))->downloadIso('local', 'https://example.com/images/ubuntu.iso');
+
+        $this->assertSame('local:iso/ubuntu.iso', $iso);
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/nodes/pve02/storage/local/download-url')
+            && $request->data() === ['content' => 'iso', 'filename' => 'ubuntu.iso', 'url' => 'https://example.com/images/ubuntu.iso']);
+    }
+}

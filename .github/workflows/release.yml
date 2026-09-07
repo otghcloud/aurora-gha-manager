@@ -1,0 +1,113 @@
+name: Release core
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_override:
+        description: Force a specific semantic version bump.
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      templates_ref:
+        description: Tag/ref of aurora-gha-manager-templates to bundle into this release
+        required: true
+        default: main
+        type: string
+      release_title:
+        description: Title for the GitHub release
+        required: true
+        type: string
+
+concurrency:
+  group: release-core
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  version:
+    name: release:version-and-tag
+    permissions:
+      contents: write
+      pull-requests: read
+    uses: ./.github/workflows/release-common.yml
+    with:
+      tag_prefix: v
+      bump_override: ${{ inputs.bump_override || 'auto' }}
+      release_title: ${{ inputs.release_title }}
+
+  publish_docker:
+    name: release:publish-image
+    needs:
+      - version
+    if: needs.version.outputs.released == 'true'
+  
+    runs-on: ['self-hosted', 'ubuntu-latest']
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
+      - name: Checkout core at release SHA
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.release_sha }}
+          fetch-depth: 0
+          submodules: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          build-args: |
+            TEMPLATES_REF=${{ inputs.templates_ref || 'main' }}
+            APP_VERSION=v${{ needs.version.outputs.version }}
+          tags: |
+            ${{ env.IMAGE }}:v${{ needs.version.outputs.version }}
+            ${{ env.IMAGE }}:latest
+
+  all-checks-passed:
+    name: release:all-checks-passed
+    runs-on: ['self-hosted', 'ubuntu-slim']
+    permissions: {}
+    needs:
+      - version
+      - publish_docker
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          results=(
+            "${{ needs.version.result }}"
+            "${{ needs.publish_docker.result }}"
+          )
+
+          for result in "${results[@]}"; do
+            if [[ "${result}" != "success" && "${result}" != "skipped" ]]; then
+              echo "One or more required jobs did not succeed."
+              exit 1
+            fi
+          done

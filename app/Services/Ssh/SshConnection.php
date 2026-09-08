@@ -8,12 +8,6 @@ use phpseclib3\Net\SFTP;
 use phpseclib3\Net\SSH2;
 
 /**
- * Thin wrapper over phpseclib, modelled on aurora-manage's SSHService.
- *
- * Separate SSH and SFTP connections are opened lazily and cached, sharing one authentication
- * path so key-based auth can replace passwords later without touching callers.
- */
-/**
  * Authenticated SSH/SFTP connection wrapper for runner provisioning tasks.
  */
 class SshConnection
@@ -29,7 +23,7 @@ class SshConnection
         private readonly ?string $password = null,
         private readonly ?string $privateKey = null,
         private readonly ?string $passphrase = null,
-        private readonly int $timeout = 60,
+        private readonly int $timeout = 300,
     ) {}
 
     /**
@@ -108,7 +102,7 @@ class SshConnection
      * leaves a lingering process attached to the session (e.g. apt triggering a service restart),
      * surfacing as "Please close the channel (1) before trying to open it again" on the *next*
      * exec() rather than the command that actually caused it. Reconnecting once and retrying is
-     * the standard workaround; a second failure is a real problem and should bubble up.
+     * the standard workaround; a second failure is a real problem and should present itself.
      *
      * @param  array<int, string>|string  $commands
      * @param  (callable(string): mixed)|null  $onOutput  Called with each chunk as it arrives,
@@ -173,12 +167,6 @@ class SshConnection
         return $this->sftp ??= $this->authenticate(new SFTP($this->host, $this->port, $this->timeout));
     }
 
-    /**
-     * @template T of SSH2
-     *
-     * @param  T  $connection
-     * @return T
-     */
     private function authenticate(SSH2 $connection): SSH2
     {
         $credential = $this->privateKey !== null && $this->privateKey !== ''

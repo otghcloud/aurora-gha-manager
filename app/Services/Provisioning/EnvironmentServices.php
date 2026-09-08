@@ -14,9 +14,6 @@ use App\Services\Proxmox\ProxmoxClient;
  * Every client is bound to one environment's credentials, so they cannot be resolved from
  * the container as singletons.
  */
-/**
- * Builds the environment-scoped service graph used by runner operations.
- */
 class EnvironmentServices
 {
     /** Build a Proxmox client for the environment's default target. */

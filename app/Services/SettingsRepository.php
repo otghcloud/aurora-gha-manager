@@ -12,15 +12,12 @@ class SettingsRepository
 {
     private const CACHE_KEY = 'app.settings';
 
-    /** Feature toggles that default to on when no row has been written yet. */
     public const REAPING_ENABLED = 'reaping_enabled';
 
-    /** One-shot request consumed by the next scheduled reaper pass. */
     public const FORCE_REAP_ALL_REQUESTED = 'force_reap_all_requested';
 
     public const AUTO_SPAWN_ENABLED = 'auto_spawn_enabled';
 
-    /** 'auto' deletes a superseded template as soon as nothing clones from it. */
     public const TEMPLATE_RETENTION_MODE = 'template_retention_mode';
 
     public const TEMPLATE_RETENTION_GENERATIONS = 'template_retention_generations';
@@ -29,7 +26,6 @@ class SettingsRepository
 
     public const RETENTION_KEEP_LAST_N = 'keep_last_n';
 
-    /** Days a stored workflow job log is kept before it is deleted from disk. */
     public const JOB_LOG_RETENTION_DAYS = 'job_log_retention_days';
 
     public const TEMPLATE_AUTO_CHECK_ENABLED = 'template_auto_check_enabled';
@@ -42,12 +38,10 @@ class SettingsRepository
 
     public const TEMPLATE_AUTO_BUILD_ENABLED = 'template_auto_build_enabled';
 
-    /** Retention for downloaded template bundles on disk, distinct from the Proxmox VM template retention above. */
     public const TEMPLATE_BUNDLE_RETENTION_MODE = 'template_bundle_retention_mode';
 
     public const TEMPLATE_BUNDLE_RETENTION_GENERATIONS = 'template_bundle_retention_generations';
 
-    /** The version directory under templates_install_path currently in use, or null if none downloaded yet. */
     public const TEMPLATE_ACTIVE_VERSION = 'template_active_version';
 
     public const RUNNER_NAME_PREFIX = 'runner_name_prefix';

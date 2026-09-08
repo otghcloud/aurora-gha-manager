@@ -17,10 +17,8 @@ class SshRunnerLauncher
      * Start the GitHub runner inside a freshly booted guest.
      *
      * The JIT blob is kept out of the SSH command line and shell history. phpseclib offers no way
-     * to signal channel EOF,
-     * so a reader like `cat` would block forever. Instead the blob is written to a private file
-     * and removed by the launch command before the runner starts — the same upload-then-execute
-     * pattern aurora-manage uses for its remote scripts.
+     * to signal channel EOF, so a reader like `cat` would block forever.
+     * Instead we write the blob to a private file and remove it when the runner starts.
      */
     public function launch(Credential $credential, Pool $pool, string $host, string $encodedJitConfig, string $runnerName): void
     {
@@ -42,16 +40,11 @@ class SshRunnerLauncher
 
         $ssh->putString($jitPath, $encodedJitConfig)->chmod(0600, $jitPath);
 
-        // Temporary until the templates ship with the SSH user already in the docker group.
+        // Commands to run prior to launching the actions runner binary
         $ssh->run('sudo -n usermod -aG docker '.escapeshellarg($credential->resolvedUsername()));
-
         $ssh->run('sudo -n hostnamectl set-hostname '.escapeshellarg($runnerName));
 
-        // Each SSH exec is its own logind session; without lingering, systemd kills that
-        // session's whole cgroup scope - including a nohup/setsid'd child - the moment this
-        // channel closes, so run.sh dies silently before it can write to its own log. Cloud
-        // image guests hit this in practice; Packer-built ones have not, but enabling lingering
-        // is harmless either way.
+        // Failsafe to ensure the runner process is not killed when the SSH session ends
         $ssh->run('sudo -n loginctl enable-linger '.escapeshellarg($credential->resolvedUsername()));
 
         $output = $ssh->run($this->launchCommand($directory, $jitFile));

@@ -21,9 +21,8 @@ class TemplateUpdateService
     /**
      * Check remote templates.json against local catalog.
      *
-     * @return array<string, mixed>
+     * @return array<string, mixed> Compare the installed catalog with the remote index.
      */
-    /** @return array<string, mixed> Compare the installed catalog with the remote index. */
     public function checkForUpdates(): array
     {
         try {
@@ -144,7 +143,6 @@ class TemplateUpdateService
     /**
      * Check if a remote update exists for the given catalog ID, comparing against current version.
      */
-    /** Resolve the available update version for a catalog entry. */
     public function getAvailableUpdateVersion(?string $id, ?string $currentVersion = null): ?string
     {
         if (! $id || ! $this->settings->templateAutoCheckEnabled()) {

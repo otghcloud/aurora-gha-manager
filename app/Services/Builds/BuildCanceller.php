@@ -13,7 +13,7 @@ use Symfony\Component\Process\Process;
 class BuildCanceller
 {
     /** Time allowed for Packer to exit on SIGTERM before it is killed outright. */
-    private const GRACE_SECONDS = 5;
+    private const GRACE_SECONDS = 10;
 
     public function cancel(ImageBuild $build, ?string $reason = null): bool
     {

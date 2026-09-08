@@ -22,9 +22,6 @@ use Illuminate\Support\Str;
  * Builds templates into a freshly allocated VMID and swaps the pool references once they succeed,
  * so a rebuild never has to destroy the image that runners are still being cloned from.
  */
-/**
- * Coordinates rebuilding runner templates and replacing their target mappings.
- */
 class TemplateRebuilder
 {
     public const MODE_SEQUENTIAL = 'sequential';
@@ -34,8 +31,8 @@ class TemplateRebuilder
     public function __construct(private readonly TemplateCatalog $catalog = new TemplateCatalog) {}
 
     /**
-     * Queue a build per node. Sequential batches only dispatch the first; the rest follow as each
-     * one succeeds.
+     * Queue a build per node. Sequential batches only dispatch the first;
+     * the rest follow as each previous build completes successfully.
      *
      * @param  Collection<int, ProxmoxTarget>  $targets
      * @return Collection<int, ImageBuild>

@@ -52,7 +52,7 @@ class TargetSelector
             $query->whereHas('pools', fn ($q) => $q->whereKey($pool->getKey()));
         }
 
-        // Host-level label matching is not yet part of the clean-install schema. The routing layer
+        // TODO: Host-level label matching is not yet part of the clean-install schema. The routing layer
         // still prefers healthy, non-saturated targets and leaves label-based filtering to the pool
         // and template selection stage until the target metadata model grows those fields.
         $query->when($labels !== [], fn ($scope) => $scope);

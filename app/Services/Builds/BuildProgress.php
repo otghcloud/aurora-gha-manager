@@ -13,9 +13,8 @@ class BuildProgress
     public function __construct(private readonly TemplateCatalog $catalog = new TemplateCatalog) {}
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed> Progress summary for the supplied build.
      */
-    /** @return array<string, mixed> Progress summary for the supplied build. */
     public function forBuild(ImageBuild $build): array
     {
         $entry = $this->catalog->entryForId($build->template_catalog_id, $build->builder_type);

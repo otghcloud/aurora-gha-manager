@@ -59,7 +59,7 @@ class Provisioner
         $this->selectTarget($pool, $preferredTarget);
 
         // Capacity and VMID reservation are serialised per pool+node so parallel queue workers
-        // cannot both read the same headroom and overshoot the limit.
+        // cannot both read the same headroom and exceed the defined limit.
         $runner = Cache::lock("pool-capacity:{$pool->id}:{$this->target->id}", 30)->block(15, function () use ($pool, $workflowJobId, $repositoryFullName): Runner {
             $this->assertCapacity($pool);
 
@@ -115,7 +115,6 @@ class Provisioner
     /**
      * Deregister the runner with GitHub and remove its VM.
      */
-    /** Destroy a runner VM and record its terminal lifecycle state. */
     public function destroy(Runner $runner, string $reason): void
     {
         if ($runner->proxmoxTarget !== null && ! $runner->proxmoxTarget->is($this->target)) {

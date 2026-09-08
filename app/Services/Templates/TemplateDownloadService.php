@@ -12,16 +12,12 @@ use RuntimeException;
 /**
  * Downloads the latest `main` of aurora-gha-manager-templates onto the persistent volume and
  * activates it, so an update survives without rebuilding the (otherwise read-only) container
- * image that ships with whatever was baked in at `docker build` time.
- */
-/**
- * Downloads and caches template bundles from the configured artifact source.
+ * image that ships with whatever was baked in at release time.
  */
 class TemplateDownloadService
 {
     private const LOCK_KEY = 'template-download';
 
-    /** Reserved version token meaning "revert to the bundle baked into the container image". */
     public const BUNDLED = 'bundled';
 
     public function __construct(
@@ -31,9 +27,8 @@ class TemplateDownloadService
     /**
      * Fetch, extract and activate the latest template bundle. Returns the installed version.
      *
-     * @return array{version: string, path: string}
+     * @return array{version: string, path: string} Download and install the current template bundle.
      */
-    /** @return array<string, mixed> Download and install the current template bundle. */
     public function download(): array
     {
         return Cache::lock(self::LOCK_KEY, 120)->block(30, function (): array {
@@ -68,7 +63,6 @@ class TemplateDownloadService
     /**
      * Point the catalog resolver at an already-downloaded version and prune old ones.
      */
-    /** Activate one installed template bundle version. */
     public function activate(string $version): void
     {
         if ($version === self::BUNDLED) {
@@ -98,7 +92,6 @@ class TemplateDownloadService
      *
      * @return string|null The version now in use, or null when nothing changed.
      */
-    /** Adopt the bundled catalog when it is newer than the active version. */
     public function adoptBundledIfNewer(): ?string
     {
         $active = $this->settings->get(SettingsRepository::TEMPLATE_ACTIVE_VERSION);
@@ -108,7 +101,7 @@ class TemplateDownloadService
         }
 
         // A pinned version whose directory has gone (pruned, or a fresh /data) must not leave the
-        // catalog pointing at nothing.
+        // catalog pointing at nothing. Default back to the bundled version.
         if (! is_dir($this->installRoot().'/'.$active)) {
             $this->settings->set(SettingsRepository::TEMPLATE_ACTIVE_VERSION, null);
 
@@ -133,7 +126,6 @@ class TemplateDownloadService
      *
      * @return array<int, array{version: string, downloaded_at: int, active: bool, bundled: bool}>
      */
-    /** @return array<int, string> Installed catalog versions. */
     public function installedVersions(): array
     {
         $root = $this->installRoot();
@@ -167,7 +159,6 @@ class TemplateDownloadService
     /**
      * Delete downloaded versions beyond the configured retention, always keeping the active one.
      */
-    /** Remove installed catalog versions outside the retention policy. */
     public function prune(): void
     {
         $keep = $this->settings->templateBundleRetentionMode() === SettingsRepository::RETENTION_KEEP_LAST_N

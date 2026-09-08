@@ -19,7 +19,6 @@ class WebhookSignature
      * The comparison is constant time, and the caller must run this before the payload
      * is parsed or trusted in any way.
      */
-    /** Verify a GitHub HMAC signature against the account secret. */
     public function verify(GitHubAccount $account, string $payload, ?string $signature): bool
     {
         if ($signature === null || ! str_starts_with($signature, self::PREFIX)) {

@@ -11,13 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Builds a Proxmox runner image with Packer, from the templates published by
- * aurora-gha-manager-templates.
- *
- * The build itself executes on the Proxmox host over its API, so this only needs the Packer
- * binary; there is no QEMU or KVM involvement here.
- */
-/**
  * Runs a registered image builder and persists its build output and status.
  */
 class ImageBuilder

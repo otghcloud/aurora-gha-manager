@@ -52,7 +52,6 @@ class TemplateCatalog
         return null;
     }
 
-    /** @return array<int, array<string, mixed>> */
     /** @return array<int, array<string, mixed>> Catalog entries for presentation. */
     public function templates(): array
     {
@@ -73,7 +72,6 @@ class TemplateCatalog
         return is_dir($directory) ? $directory : null;
     }
 
-    /** @return array<string, mixed> */
     /** @return array<string, mixed> Build manifest for the selected entry. */
     public function buildManifest(TemplateCatalogEntry $entry): array
     {

@@ -136,8 +136,13 @@ class Reaper
         $corrections = 0;
 
         foreach ($this->trackedRunners()->get() as $runner) {
-            if (! isset($vms[$runner->vmid])) {
-                $runner->transitionTo(RunnerState::Destroyed, 'VM no longer exists in Proxmox');
+            $vm = $vms[$runner->vmid] ?? null;
+
+            if ($vm === null || ! $this->isRunnerVm($runner, $vm)) {
+                $reason = $vm === null
+                    ? 'VM no longer exists in Proxmox'
+                    : 'Runner VM no longer exists; its VMID is now owned by another VM';
+                $runner->transitionTo(RunnerState::Destroyed, $reason);
                 $corrections++;
             }
         }
@@ -153,6 +158,14 @@ class Reaper
         }
 
         return $corrections;
+    }
+
+    /** @param array<string, mixed> $vm */
+    private function isRunnerVm(Runner $runner, array $vm): bool
+    {
+        $name = $vm['name'] ?? null;
+
+        return ! is_string($name) || $name === '' || $name === $runner->runner_name;
     }
 
     /**

@@ -71,6 +71,25 @@ class VmidAllocatorTest extends TestCase
         $this->assertSame(804, $vmid);
     }
 
+    public function test_template_allocation_does_not_reuse_a_stale_runner_vmid(): void
+    {
+        $target = $this->makeTarget();
+        $target->update([
+            'template_vmid_range_start' => 100,
+            'template_vmid_range_end' => 105,
+            'runner_vmid_range_start' => 100,
+            'runner_vmid_range_end' => 199,
+        ]);
+        $template = $this->makeTemplate();
+        $this->makeRunner($template->environment_id, $target->id, 101, RunnerState::Reaping);
+        $this->fakeCluster([100]);
+
+        $vmid = (new VmidAllocator(new ProxmoxClient($target)))
+            ->allocate($target, 'template', fn (int $vmid): int => $vmid);
+
+        $this->assertSame(102, $vmid);
+    }
+
     public function test_a_finished_build_no_longer_reserves_its_vmid(): void
     {
         $target = $this->makeTarget();

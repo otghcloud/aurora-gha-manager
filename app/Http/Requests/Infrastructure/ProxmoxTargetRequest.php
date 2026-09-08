@@ -47,7 +47,7 @@ class ProxmoxTargetRequest extends FormRequest
             'max_total_vms' => ['required', 'integer', 'min:1'],
             'template_vmid_range_start' => ['required', 'integer', 'min:100'],
             'template_vmid_range_end' => ['required', 'integer', 'gt:template_vmid_range_start'],
-            'runner_vmid_range_start' => ['required', 'integer', 'min:100'],
+            'runner_vmid_range_start' => ['required', 'integer', 'min:100', 'gt:template_vmid_range_end'],
             'runner_vmid_range_end' => ['required', 'integer', 'gt:runner_vmid_range_start'],
             'build_iso_storage' => ['nullable', 'string', 'max:255'],
             'build_vm_storage' => ['nullable', 'string', 'max:255'],

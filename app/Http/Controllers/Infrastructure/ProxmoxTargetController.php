@@ -11,6 +11,7 @@ use App\Services\Proxmox\ProxmoxClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
@@ -152,7 +153,10 @@ class ProxmoxTargetController extends Controller
     /** Delete a standalone target. */
     public function standaloneDestroy(ProxmoxTarget $target): RedirectResponse
     {
-        $target->delete();
+        DB::transaction(function () use ($target): void {
+            $target->runners()->delete();
+            $target->delete();
+        });
 
         return redirect()->route('nodes.index')->with('success', 'Proxmox target deleted.');
     }

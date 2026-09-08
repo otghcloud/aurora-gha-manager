@@ -130,12 +130,46 @@ class ReaperDecisionsTest extends TestCase
 
     public function test_a_vm_in_the_template_range_is_never_reconciled(): void
     {
-        $reaper = $this->reaper();
-        $method = new ReflectionMethod($reaper, 'isTemplateVmid');
+        $proxmox = $this->createMock(ProxmoxClient::class);
+        $proxmox->method('clusterVms')->willReturn([
+            802 => ['vmid' => 802, 'name' => 'gha-ubuntu-slim-template', 'template' => 0],
+        ]);
+        $proxmox->expects($this->never())->method('config');
 
         // A template build runs for hours as an ordinary VM before Packer converts it.
-        $this->assertTrue($method->invoke($reaper, 802));
-        $this->assertFalse($method->invoke($reaper, 901));
+        $reaper = new Reaper(
+            $this->environment,
+            $this->target,
+            $proxmox,
+            $this->createMock(GitHubClient::class),
+            $this->createMock(Provisioner::class),
+        );
+
+        $this->assertSame(0, $reaper->reconcile());
+        $this->assertDatabaseMissing('runners', ['vmid' => 802]);
+    }
+
+    public function test_a_stale_reaping_runner_cannot_destroy_a_template_build_reusing_its_vmid(): void
+    {
+        $runner = $this->makeRunner(101, RunnerState::Reaping, now()->subHour());
+        $proxmox = $this->createMock(ProxmoxClient::class);
+        $proxmox->method('clusterVms')->willReturn([
+            101 => ['vmid' => 101, 'name' => 'tpl-ubuntu-slim', 'template' => 0],
+        ]);
+        $proxmox->expects($this->never())->method('destroy');
+        $provisioner = $this->createMock(Provisioner::class);
+        $provisioner->expects($this->never())->method('destroy');
+        $github = $this->createMock(GitHubClient::class);
+        $github->method('listRunners')->willReturn([]);
+
+        $reaper = new Reaper($this->environment, $this->target, $proxmox, $github, $provisioner);
+
+        $this->assertSame(0, $reaper->runOnce());
+        $this->assertSame(RunnerState::Destroyed, $runner->fresh()->state);
+        $this->assertSame(
+            'Runner VM no longer exists; its VMID is now owned by another VM',
+            $runner->fresh()->events()->latest('id')->value('reason')
+        );
     }
 
     public function test_a_sweep_re_reads_each_runner_so_a_slow_destroy_cannot_kill_a_live_one(): void

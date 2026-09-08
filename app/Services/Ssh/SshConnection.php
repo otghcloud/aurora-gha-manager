@@ -124,8 +124,12 @@ class SshConnection
     {
         try {
             return (string) $this->ssh()->exec($command, $onOutput);
-        } catch (\RuntimeException $e) {
-            if (! str_contains($e->getMessage(), 'close the channel')) {
+        } catch (\RuntimeException|\ErrorException $e) {
+            $channelWasLeftOpen = str_contains($e->getMessage(), 'close the channel');
+            $channelMapWasCleared = $e instanceof \ErrorException
+                && str_contains($e->getMessage(), 'Undefined array key '.SSH2::CHANNEL_EXEC);
+
+            if (! $channelWasLeftOpen && ! $channelMapWasCleared) {
                 throw $e;
             }
 

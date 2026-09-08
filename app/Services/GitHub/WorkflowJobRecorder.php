@@ -17,9 +17,6 @@ use Illuminate\Support\Facades\DB;
  * The payload carries everything we display, including the per-step timings on completion, so no
  * GitHub API call is needed to build the history. Only the raw log is fetched separately.
  */
-/**
- * Converts GitHub workflow_job webhook payloads into durable job records.
- */
 class WorkflowJobRecorder
 {
     /**

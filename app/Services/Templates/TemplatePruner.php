@@ -13,9 +13,6 @@ use Throwable;
 /**
  * Destroys template VMs superseded by a rebuild, for both the scheduled prune and manual purges.
  */
-/**
- * Removes superseded templates once no active runner or build depends on them.
- */
 class TemplatePruner
 {
     /**
@@ -52,9 +49,8 @@ class TemplatePruner
     /**
      * Purges every superseded template for one runner template, ignoring the retention setting.
      *
-     * @return array{purged: int, skipped: int}
+     * @return array{purged: int, skipped: int} Retired template IDs removed for the template.
      */
-    /** @return array<int, int> Retired template IDs removed for the template. */
     public function purgeForTemplate(int $runnerTemplateId): array
     {
         $purged = 0;

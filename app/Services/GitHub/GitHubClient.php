@@ -22,9 +22,8 @@ class GitHubClient
      * The blob is consumed by the runner on its first job, so the long-lived token never
      * has to leave the controller.
      *
-     * @param  array<int, string>  $labels
+     * @param  array<int, string>  $labels  @throws GitHubException On API failure.
      */
-    /** @param array<int, string> $labels @throws GitHubException On API failure. */
     public function generateJitConfig(string $runnerName, array $labels): JitRunner
     {
         $response = $this->request()->post($this->url($this->runnerPath('/actions/runners/generate-jitconfig')), [
@@ -53,7 +52,6 @@ class GitHubClient
      *
      * @return array<string, GitHubRunner>
      */
-    /** @return array<string, GitHubRunner> Runners keyed by GitHub runner name. */
     public function listRunners(): array
     {
         $runners = [];
@@ -101,7 +99,6 @@ class GitHubClient
      * The raw log for a finished job. GitHub redirects to a short-lived blob URL, and returns 410
      * once its own retention window has expired.
      */
-    /** Return the job log text, or null when GitHub has no log available. */
     public function jobLog(string $repositoryFullName, int $jobId): ?string
     {
         $response = $this->request()
@@ -120,9 +117,8 @@ class GitHubClient
     }
 
     /**
-     * Deregister a runner. A 404 means it already removed itself, which is the happy path.
+     * Deregister a runner. A 404 means it already removed itself, which is fine.
      */
-    /** Delete a registered runner from GitHub. */
     public function deleteRunner(int $runnerId): void
     {
         $response = $this->request()->delete($this->url($this->runnerPath("/actions/runners/{$runnerId}")));

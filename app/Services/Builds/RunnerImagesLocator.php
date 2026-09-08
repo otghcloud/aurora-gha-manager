@@ -30,12 +30,6 @@ class RunnerImagesLocator
         return $this->fetchedPath($template);
     }
 
-    /**
-     * Like scriptsRoot(), but always resolves to an actual filesystem path when scripts are
-     * required - including the bundled tree - for callers that read files from disk (e.g. the
-     * cloudimage builder's SSH uploads) rather than just needing to know whether Packer's own
-     * bundled-relative paths need overriding.
-     */
     /** Return the local runner-images checkout root, when available. */
     public function filesystemRoot(TemplateCatalogEntry $template): ?string
     {

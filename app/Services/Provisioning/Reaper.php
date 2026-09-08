@@ -32,9 +32,8 @@ class Reaper
     /**
      * Reconcile against reality, then destroy everything that has outlived its usefulness.
      *
-     * @return int the number of VMs destroyed
+     * @return int the number of VMs destroyed during the sweep.
      */
-    /** @return int Number of runners destroyed during the sweep. */
     public function runOnce(): int
     {
         $this->reconcile();
@@ -107,7 +106,6 @@ class Reaper
      *
      * @return int the number of VMs destroyed
      */
-    /** @return int Number of tracked runners destroyed. */
     public function destroyAll(): int
     {
         $destroyed = 0;
@@ -130,9 +128,8 @@ class Reaper
     /**
      * Bring the database back in line with what Proxmox actually has.
      *
-     * @return int the number of corrections made
+     * @return int the number of database corrections made
      */
-    /** @return int Number of database corrections made. */
     public function reconcile(): int
     {
         $vms = $this->proxmox->clusterVms();
@@ -160,7 +157,7 @@ class Reaper
 
     /**
      * A VMID inside the node's template range belongs to a template or an in-flight build of one,
-     * neither of which the reaper may touch. Builds run for hours as an ordinary VM before Packer
+     * neither of which the reaper may touch. Builds can run for hours as an ordinary VM before Packer
      * converts them, so name and tag heuristics alone are not enough to protect them.
      */
     private function isTemplateVmid(int $vmid): bool
@@ -300,7 +297,6 @@ class Reaper
 
     /**
      * Whether this runner was cloned from a template the node has since rebuilt.
-     *
      * Busy runners are left to finish their job; the webhook moves them on when it completes.
      */
     private function isFromSupersededTemplate(Runner $runner): bool
@@ -346,14 +342,14 @@ class Reaper
      */
     private function isManaged(array $vm): bool
     {
-        // Template VMs carry the same gha- prefix as runners but must never be adopted or destroyed.
+        // Template VMs can carry the same gha- prefix as runners but must never be adopted or destroyed.
         if (! empty($vm['template'])) {
             return false;
         }
 
         $tags = explode(';', (string) ($vm['tags'] ?? ''));
 
-        // The name prefix is the fallback for clusters where the token may not write tags.
+        // The name prefix is the fallback for clusters where the user defined API token may not be able to write tags.
         return in_array(ProxmoxClient::MANAGED_TAG, $tags, true)
             || str_starts_with((string) ($vm['name'] ?? ''), 'gha-');
     }

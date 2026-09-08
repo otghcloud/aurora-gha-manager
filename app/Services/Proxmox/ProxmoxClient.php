@@ -34,9 +34,8 @@ class ProxmoxClient
     /**
      * Every VM known to the cluster, keyed by VMID.
      *
-     * @return array<int, array<string, mixed>>
+     * @return array<int, array<string, mixed>> Return VMs visible to the connection.
      */
-    /** @return array<int, array<string, mixed>> Return VMs visible to the connection. */
     public function clusterVms(): array
     {
         $resources = $this->get('/cluster/resources', ['type' => 'vm']);
@@ -58,7 +57,6 @@ class ProxmoxClient
      * @param  array<int, array<string, mixed>>  $clusterVms
      * @return array<int, array<string, mixed>>
      */
-    /** @param array<int, array<string, mixed>> $clusterVms @return array<int, array<string, mixed>> VMs assigned to the target. */
     public function filterTargetVms(array $clusterVms, ProxmoxTarget $target): array
     {
         $node = strtolower((string) $target->proxmox_node);
@@ -94,9 +92,8 @@ class ProxmoxClient
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed> Return VM configuration.
      */
-    /** @return array<string, mixed> Return VM configuration. */
     public function config(int $vmid): array
     {
         return $this->get("/nodes/{$this->node()}/qemu/{$vmid}/config");
@@ -105,9 +102,8 @@ class ProxmoxClient
     /**
      * Storages on this node that can hold the given content type.
      *
-     * @return array<int, array<string, mixed>>
+     * @return array<int, array<string, mixed>> Return storage pools supporting the content type.
      */
-    /** @return array<int, array<string, mixed>> Return storage pools supporting the content type. */
     public function storages(string $content = 'iso'): array
     {
         return $this->get("/nodes/{$this->node()}/storage", ['content' => $content]);
@@ -117,9 +113,8 @@ class ProxmoxClient
      * Return the node-local mount path for a configured storage.
      *
      * Proxmox's `import-from` parameter needs a filesystem path for an ISO
-     * volume; an `storage:iso/name` volume ID is rejected by the API.
+     * volume; a `storage:iso/name` volume ID is rejected by the API.
      */
-    /** Resolve the filesystem path for a named storage pool. */
     public function storagePath(string $storage): string
     {
         $config = $this->get('/nodes/'.$this->node().'/storage/'.$storage);
@@ -148,7 +143,6 @@ class ProxmoxClient
      *
      * @return array<int, array{volid: string, storage: string, size: int|null}>
      */
-    /** @return array<int, array<string, mixed>> Return available ISO images. */
     public function isoImages(): array
     {
         $images = [];
@@ -186,7 +180,6 @@ class ProxmoxClient
     /**
      * Download an ISO to the configured node storage and return its Proxmox volume ID.
      */
-    /** Download an ISO into Proxmox storage and return its volume identifier. */
     public function downloadIso(string $storage, string $url): string
     {
         return $this->downloadImage($storage, $url);
@@ -195,7 +188,6 @@ class ProxmoxClient
     /**
      * Download an image artifact to node storage and return its volume ID.
      */
-    /** Download a disk image into Proxmox storage. */
     public function downloadImage(string $storage, string $url): string
     {
         $filename = basename((string) parse_url($url, PHP_URL_PATH));
@@ -238,7 +230,6 @@ class ProxmoxClient
     /**
      * Linked clone from a template. Blocks until the Proxmox task completes.
      */
-    /** Clone a template VM into a new VMID. */
     public function clone(int $templateVmid, int $vmid, string $name): void
     {
         $payload = array_filter([
@@ -288,7 +279,6 @@ class ProxmoxClient
      * The source must be a path or volume visible to the Proxmox node, matching
      * the `import-from` value accepted by the Proxmox API.
      */
-    /** Import a downloaded cloud image into a VM disk. */
     public function importCloudImage(int $vmid, string $storage, string $source): void
     {
         $this->put('/nodes/'.$this->node().'/qemu/'.$vmid.'/config', [
@@ -335,8 +325,7 @@ class ProxmoxClient
         // Proxmox's `sshkeys` field has format "urlencoded": its own schema validation rejects a
         // value that isn't itself percent-encoded, then decodes it a second time internally. So
         // despite `put()` already form-encoding this payload for transport, the value must be
-        // pre-encoded here too - confirmed against a real cluster, which rejects the unencoded
-        // form with HTTP 400 "invalid urlencoded string".
+        // pre-encoded here to prevent Proxmox from rejecting with HTTP 400 "invalid urlencoded string".
         if ($publicKey !== null && $publicKey !== '') {
             $payload['sshkeys'] = rawurlencode(trim($publicKey));
         }
@@ -419,9 +408,8 @@ class ProxmoxClient
      * zero-byte files behind - exactly what a template sealed with `stop()` right after a big
      * file download/extraction risks baking in for every future clone. `forceStop` still cuts
      * power if the guest doesn't shut down cleanly within `timeoutSeconds`, so this can't hang
-     * forever on a guest with a broken shutdown path.
+     * forever on a guest with a broken shutdown path. Observed behavior in previous releases.
      */
-    /** Request a graceful VM shutdown, waiting up to the timeout. */
     public function shutdown(int $vmid, int $timeoutSeconds = 120): void
     {
         $upid = $this->post("/nodes/{$this->node()}/qemu/{$vmid}/status/shutdown", [
@@ -458,13 +446,12 @@ class ProxmoxClient
     /**
      * First routable IPv4 reported by the QEMU guest agent, or null while it is still booting.
      */
-    /** Return the first usable IPv4 address reported by the guest agent. */
     public function guestIpv4(int $vmid): ?string
     {
         try {
             $result = $this->get("/nodes/{$this->node()}/qemu/{$vmid}/agent/network-get-interfaces");
         } catch (ProxmoxException) {
-            // The agent is not answering yet; the caller retries.
+            // The agent is not answering yet; keep trying.
             return null;
         }
 
@@ -611,7 +598,7 @@ class ProxmoxClient
      * Fetch (and cache) an auth ticket via username/password. Tickets are valid for ~2 hours, so
      * this only re-authenticates once per client instance rather than on every request. Some
      * Proxmox endpoints (e.g. arbitrary import-from filesystem paths) reject API tokens outright
-     * and require a standard login, hence supporting both auth realms.
+     * and require a standard login, so we support both auth realms.
      *
      * @param  bool|string  $verify
      */

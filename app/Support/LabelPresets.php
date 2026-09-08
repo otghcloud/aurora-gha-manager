@@ -11,9 +11,6 @@ use App\Enums\PoolOs;
  * reason a queued job never gets picked up. Offering known-good sets from the supported
  * config.example.yaml keeps hand-typed mistakes down.
  */
-/**
- * Provides supported GitHub Actions label combinations by operating system.
- */
 class LabelPresets
 {
     /**
@@ -37,9 +34,8 @@ class LabelPresets
     }
 
     /**
-     * @return array<int, string>
+     * @return array<int, string> Baseline labels for the operating system.
      */
-    /** @return array<int, string> Baseline labels for the operating system. */
     public static function baseline(PoolOs $os): array
     {
         return ['self-hosted', $os->slug(), 'x64'];
@@ -48,9 +44,8 @@ class LabelPresets
     /**
      * Every preset, grouped by OS, for rendering in the pool form.
      *
-     * @return array<string, array<string, array<int, string>>>
+     * @return array<string, array<string, array<int, string>>> All supported presets.
      */
-    /** @return array<string, array<string, array<int, string>>> All supported presets. */
     public static function all(): array
     {
         $presets = [];

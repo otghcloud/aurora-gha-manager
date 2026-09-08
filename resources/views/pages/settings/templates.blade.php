@@ -54,7 +54,7 @@
 										<strong>Last checked:</strong> {{ ! empty($updateData['checked_at']) ? \Carbon\Carbon::parse($updateData['checked_at'])->diffForHumans() : 'Recently' }}
 										&middot;
 										@if (! empty($updateData['available']))
-											<span class="text-warning font-weight-bold">{{ count($updateData['updates'] ?? []) }} update(s) available.</span>
+											<span class="text-warning fw-bold">{{ count($updateData['updates'] ?? []) }} update(s) available.</span>
 										@else
 											<span class="text-success">All templates up to date.</span>
 										@endif

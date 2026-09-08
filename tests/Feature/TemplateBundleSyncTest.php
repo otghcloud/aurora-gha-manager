@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Services\SettingsRepository;
 use App\Services\Templates\TemplateDownloadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class TemplateBundleSyncTest extends TestCase
@@ -76,6 +77,43 @@ class TemplateBundleSyncTest extends TestCase
 
         $this->assertNull(app(TemplateDownloadService::class)->adoptBundledIfNewer());
     }
+
+        public function test_downloading_an_existing_version_replaces_its_catalog_contents(): void
+        {
+            $this->givenDownloadedVersion('2026.09.08.1');
+            file_put_contents($this->installRoot.'/2026.09.08.1/stale', 'old');
+
+            $archiveSource = storage_path('framework/testing/archive-source');
+            $archiveRoot = $archiveSource.'/aurora-gha-manager-templates-main';
+                if (is_dir($archiveSource)) {
+                    exec('rm -rf '.escapeshellarg($archiveSource));
+                }
+               mkdir($archiveRoot, 0777, true);
+               $this->writeCatalog($archiveRoot, '2026.09.08.1');
+               file_put_contents($archiveRoot.'/fresh', 'new');
+
+               $archive = storage_path('framework/testing/templates.tar');
+                foreach ([$archive, $archive.'.gz'] as $path) {
+                    if (is_file($path)) {
+                        unlink($path);
+                    }
+                }
+               $phar = new \PharData($archive);
+            $phar->buildFromDirectory($archiveSource);
+               $phar->compress(\Phar::GZ);
+
+               Http::fake(['*' => Http::response(file_get_contents($archive.'.gz'), 200)]);
+
+               app(TemplateDownloadService::class)->download();
+
+               $this->assertFileDoesNotExist($this->installRoot.'/2026.09.08.1/stale');
+               $this->assertFileExists($this->installRoot.'/2026.09.08.1/fresh');
+               $this->assertSame('2026.09.08.1', app(SettingsRepository::class)->get(SettingsRepository::TEMPLATE_ACTIVE_VERSION));
+
+               unlink($archive.'.gz');
+               unlink($archive);
+                exec('rm -rf '.escapeshellarg($archiveSource));
+        }
 
     private function givenBundledVersion(string $version): void
     {

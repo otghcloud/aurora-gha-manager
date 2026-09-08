@@ -46,9 +46,8 @@ class TemplateDownloadService
 
                 $destination = $root.'/'.$version;
 
-                if (! is_dir($destination)) {
-                    rename($extractedRoot, $destination);
-                }
+                        File::deleteDirectory($destination);
+                        rename($extractedRoot, $destination);
 
                 $this->activate($version);
 

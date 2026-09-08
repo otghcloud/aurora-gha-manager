@@ -104,6 +104,11 @@ class VmidAllocator
             ->pluck('template_vmid')
             ->all();
 
-        return array_map('intval', array_merge($live, $retired, $building));
+        $runners = Runner::where('proxmox_target_id', $target->id)
+            ->whereNot('state', RunnerState::Destroyed->value)
+            ->pluck('vmid')
+            ->all();
+
+        return array_map('intval', array_merge($live, $retired, $building, $runners));
     }
 }

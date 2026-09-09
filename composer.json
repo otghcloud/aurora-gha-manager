@@ -7,7 +7,7 @@
     "license": "MIT",
     "require": {
         "otghcloud/aurora-gha-plugin-packer": "^1.0.1",
-        "otghcloud/aurora-gha-plugin-cloudimage": "^1.0.1",
+        "otghcloud/aurora-gha-plugin-cloudimage": "^1.1.1",
         "php": "^8.3",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",

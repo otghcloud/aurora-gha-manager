@@ -74,7 +74,15 @@
 							<span class="badge bg-{{ $build->status->colour() }}-lt ms-2" id="build-status">{{ $build->status->label() }}</span>
 						</h3>
 						@unless ($build->status->isFinished())
-							<div class="card-actions">
+							<div class="card-actions d-flex align-items-center gap-3">
+								<form action="{{ route('builds.keep-failed-vm', $build) }}" method="POST">
+									@csrf
+									@method('PUT')
+									<label class="form-check form-switch mb-0" title="Keep the temporary VM when this build fails">
+										<input class="form-check-input" name="keep_failed_vm" onchange="this.form.submit()" role="switch" type="checkbox" value="1" @checked($build->keep_failed_vm)>
+										<span class="form-check-label">Keep VM on failure</span>
+									</label>
+								</form>
 								<span class="spinner-border spinner-border-sm text-blue" role="status"></span>
 							</div>
 						@endunless

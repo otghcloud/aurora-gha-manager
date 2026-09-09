@@ -69,6 +69,21 @@ function updateProgress(progress) {
     });
 }
 
+function updateStatus(payload) {
+    const badge = document.getElementById('build-status');
+
+    if (!badge || !payload.status_label || !payload.status_colour) {
+        return;
+    }
+
+    if (badge.textContent === payload.status_label && badge.classList.contains(`bg-${payload.status_colour}-lt`)) {
+        return;
+    }
+
+    badge.textContent = payload.status_label;
+    badge.className = `badge bg-${payload.status_colour}-lt ms-2`;
+}
+
 function initStageGroupToggles() {
     document.addEventListener('click', (event) => {
         const toggle = event.target.closest('[data-build-stage-toggle]');
@@ -152,6 +167,7 @@ export default function initBuildLog() {
         const stick = atBottom();
 
         updateProgress(payload.progress);
+        updateStatus(payload);
 
         if (payload.content) {
             render(payload.content);

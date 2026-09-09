@@ -97,6 +97,28 @@ class BuildForceKillTest extends TestCase
         $this->assertSame(BuildStatus::Succeeded, $build->fresh()->status);
     }
 
+    public function test_it_updates_the_failed_vm_retention_preference_for_an_active_build(): void
+    {
+        $build = $this->build(BuildStatus::Running);
+
+        $this->put(route('builds.keep-failed-vm', $build), ['keep_failed_vm' => true])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertTrue($build->fresh()->keep_failed_vm);
+    }
+
+    public function test_it_does_not_update_the_failed_vm_retention_preference_for_a_finished_build(): void
+    {
+        $build = $this->build(BuildStatus::Failed);
+
+        $this->put(route('builds.keep-failed-vm', $build), ['keep_failed_vm' => true])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertFalse($build->fresh()->keep_failed_vm);
+    }
+
     public function test_it_terminates_the_tracked_process(): void
     {
         $sleeper = new Process(['sleep', '60']);

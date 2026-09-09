@@ -79,6 +79,8 @@ class BuildController extends Controller
             'content' => $content,
             'offset' => $offset + strlen($content),
             'status' => $imageBuild->status->value,
+            'status_label' => $imageBuild->status->label(),
+            'status_colour' => $imageBuild->status->colour(),
             'finished' => $imageBuild->status->isFinished() && ($offset + strlen($content)) >= $size,
             'progress' => $this->progress->forBuild($imageBuild->fresh()),
         ]);
@@ -94,6 +96,18 @@ class BuildController extends Controller
         $canceller->cancel($imageBuild, 'force killed from the web interface');
 
         return back()->with('success', 'Build force killed.');
+    }
+
+    /** Set whether this active build's VM is retained when the build fails. */
+    public function updateKeepFailedVm(ImageBuild $imageBuild, Request $request): RedirectResponse
+    {
+        if ($imageBuild->status->isFinished()) {
+            return back()->with('error', 'That build has already finished.');
+        }
+
+        $imageBuild->forceFill(['keep_failed_vm' => $request->boolean('keep_failed_vm')])->save();
+
+        return back()->with('success', 'Build failure retention preference updated.');
     }
 
     /** Delete an image build record and its retained log. */
@@ -139,6 +153,8 @@ class BuildController extends Controller
             'content' => $content,
             'offset' => $offset + strlen($content),
             'status' => $build->status->value,
+            'status_label' => $build->status->label(),
+            'status_colour' => $build->status->colour(),
             'finished' => $build->status->isFinished() && ($offset + strlen($content)) >= $size,
             'progress' => $this->progress->forBuild($build->fresh()),
         ]);

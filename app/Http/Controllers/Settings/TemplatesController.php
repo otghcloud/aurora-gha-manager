@@ -36,6 +36,7 @@ class TemplatesController extends Controller
             'template_check_interval_hours' => ['required_if:template_auto_check_enabled,1', 'nullable', 'integer', 'min:1', 'max:168'],
             'template_auto_download_enabled' => ['nullable', 'boolean'],
             'template_auto_build_enabled' => ['nullable', 'boolean'],
+            'keep_failed_build_vm' => ['nullable', 'boolean'],
         ]);
 
         $this->settings->setMany([
@@ -43,6 +44,7 @@ class TemplatesController extends Controller
             SettingsRepository::TEMPLATE_CHECK_INTERVAL_HOURS => $validated['template_check_interval_hours'] ?? 24,
             SettingsRepository::TEMPLATE_AUTO_DOWNLOAD_ENABLED => $request->has('template_auto_download_enabled') ? '1' : '0',
             SettingsRepository::TEMPLATE_AUTO_BUILD_ENABLED => $request->has('template_auto_build_enabled') ? '1' : '0',
+            SettingsRepository::KEEP_FAILED_BUILD_VM => $request->has('keep_failed_build_vm') ? '1' : '0',
         ]);
 
         return redirect()

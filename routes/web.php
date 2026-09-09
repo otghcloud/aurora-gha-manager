@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Builds\BuildController;
+use App\Http\Controllers\Builds\GuestBuildCallbackController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GitHub\GitHubAccountController;
 use App\Http\Controllers\GitHub\WorkflowJobController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\Webhooks\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/healthz', fn () => response()->json(['status' => 'ok']))->name('healthz');
+
+Route::post('/api/builds/{imageBuild}/events', GuestBuildCallbackController::class)->name('builds.guest-events');
 
 // Authenticated by GitHub's HMAC signature, and reachable before setup completes.
 Route::post('/webhook/{webhookId}', [WebhookController::class, 'handle'])->name('webhook');
@@ -76,6 +79,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/builds', [BuildController::class, 'index'])->name('builds.index');
         Route::get('/builds/{imageBuild}', [BuildController::class, 'show'])->name('builds.show');
         Route::get('/builds/{imageBuild}/log', [BuildController::class, 'log'])->name('builds.log');
+        Route::put('/builds/{imageBuild}/keep-failed-vm', [BuildController::class, 'updateKeepFailedVm'])->name('builds.keep-failed-vm');
         Route::post('/builds/{imageBuild}/cancel', [BuildController::class, 'cancel'])->name('builds.cancel');
         Route::delete('/builds/{imageBuild}', [BuildController::class, 'destroy'])->name('builds.destroy');
     });

@@ -21,8 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Runs ahead of authentication: an unconfigured install has no users to authenticate.
         $middleware->prependToGroup('web', EnsureAppConfigured::class);
 
-        // GitHub signs webhook deliveries with an HMAC, so CSRF does not apply.
-        $middleware->validateCsrfTokens(except: ['webhook/*']);
+        // GitHub signs webhook deliveries with an HMAC and temporary build VMs use per-build
+        // bearer credentials, so neither machine-to-machine endpoint uses browser CSRF tokens.
+        $middleware->validateCsrfTokens(except: ['webhook/*', 'api/builds/*/events']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

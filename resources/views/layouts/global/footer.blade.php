@@ -11,10 +11,10 @@
 			<div class="col-12 col-lg-auto mt-3 mt-lg-0">
 				<ul class="list-inline list-inline-dots mb-0">
 					<li class="list-inline-item">
-						Copyright &copy; {{ date('Y') }} Aurora Technology (OTGH) Ltd
+						Copyright &copy; {{ date('Y') }} <a href="https://auroratechnology.co.uk" rel="noopener" target="_blank">Aurora Technology</a>
 					</li>
 					<li class="list-inline-item">
-						Proxmox GHA Manager 
+						<a href="https://runner-manager.app" rel="noopener" target="_blank">Runner Manager (Proxmox)</a>
 					</li>
 					<li class="list-inline-item">
 						{{ app_version() }}

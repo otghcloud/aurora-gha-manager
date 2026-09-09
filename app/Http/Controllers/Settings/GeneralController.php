@@ -47,11 +47,13 @@ class GeneralController extends Controller
     {
         $validated = $request->validate([
             'app_url' => ['required', 'url'],
+            'build_api_url' => ['nullable', 'url'],
             'timezone' => ['required', 'string', Rule::in(timezone_identifiers_list())],
         ]);
 
         $this->settings->setMany([
             'app_url' => rtrim($validated['app_url'], '/'),
+            'build_api_url' => rtrim((string) ($validated['build_api_url'] ?? ''), '/'),
             'timezone' => $validated['timezone'],
         ]);
 

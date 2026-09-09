@@ -34,7 +34,6 @@ class RunnerTemplateRequest extends FormRequest
             'target_ids.*' => ['integer', 'exists:proxmox_targets,id', 'distinct'],
             'mappings' => ['array'],
             'mappings.*.build_iso_file' => ['nullable', 'string', 'max:255'],
-            'mappings.*.build_iso_url' => ['nullable', 'url', 'max:2000'],
             'mappings.*.build_cores' => ['nullable', 'integer', 'min:1', 'max:512'],
             'mappings.*.build_memory_mb' => ['nullable', 'integer', 'min:1024'],
             'mappings.*.build_disk_gb' => ['nullable', 'integer', 'min:20'],

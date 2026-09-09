@@ -19,6 +19,11 @@
 						<input class="form-control" id="app_url" name="app_url" required type="url" value="{{ old('app_url', $settings['app_url'] ?? url('/')) }}">
 						<small class="form-hint">Used to build the webhook URLs shown on each environment.</small>
 					</div>
+					<div class="mb-3">
+						<label class="form-label" for="build_api_url">Build API URL</label>
+						<input class="form-control" id="build_api_url" name="build_api_url" type="url" value="{{ old('build_api_url', $settings['build_api_url'] ?? '') }}">
+						<small class="form-hint">Used by temporary build VMs for progress callbacks. Defaults to External URL when empty.</small>
+					</div>
 					<div class="mb-0">
 						<label class="form-label required" for="timezone">Display timezone</label>
 						<select class="form-select" id="timezone" name="timezone" required>

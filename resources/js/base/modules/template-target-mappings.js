@@ -34,6 +34,8 @@ export default function initTemplateTargetMappings() {
     // Packer is the only implemented builder; cloudimage is published but not yet buildable.
     const selectedBuilder = (template) => template?.builders?.packer ?? Object.values(template?.builders ?? {})[0] ?? {};
 
+    const automaticIso = '__auto__';
+
     const renderDetails = () => {
         const template = selectedTemplate();
 
@@ -52,14 +54,14 @@ export default function initTemplateTargetMappings() {
         const template = selectedTemplate();
         const builder = selectedBuilder(template);
         const requirements = builder.build_requirements || {};
+        const canDownloadIso = Boolean(builder.artifact?.url);
         const selected = [...root.querySelectorAll('[data-target-toggle]:checked')].map((input) => Number(input.value));
         rows.innerHTML = selected.map((id) => {
             const target = catalog.find((item) => item.id === id);
             const mapping = existing[id] || {};
             return `<tr data-target-row="${id}">
                 <td>${esc(target?.name)} <span class="text-secondary">(${esc(target?.node)})</span></td>
-                <td><select class="form-select form-select-sm" data-iso-select data-target-id="${id}" data-iso-url="${esc(target?.isoUrl)}" name="mappings[${id}][build_iso_file]"><option value="${esc(mapping.buildIsoFile || '')}">${mapping.buildIsoFile ? esc(mapping.buildIsoFile) : 'Load ISO options'}</option></select><small class="text-secondary" data-iso-status></small></td>
-                <td><input class="form-control form-control-sm" name="mappings[${id}][build_iso_url]" type="url" placeholder="https://..." value="${esc(mapping.buildIsoUrl || builder.artifact?.url || '')}"></td>
+                <td><select class="form-select form-select-sm" data-iso-select data-target-id="${id}" data-iso-url="${esc(target?.isoUrl)}" name="mappings[${id}][build_iso_file]"><option value="${esc(mapping.buildIsoFile || (canDownloadIso ? automaticIso : ''))}">${mapping.buildIsoFile && mapping.buildIsoFile !== automaticIso ? esc(mapping.buildIsoFile) : (canDownloadIso ? 'Auto (detect or download)' : 'Select installation ISO')}</option></select><small class="text-secondary" data-iso-status></small></td>
                 <td><input class="form-control form-control-sm" name="mappings[${id}][build_cores]" type="number" min="1" value="${esc(mapping.buildCores || requirements.cpu_cores || '')}"></td>
                 <td><input class="form-control form-control-sm" name="mappings[${id}][build_memory_mb]" type="number" min="1024" value="${esc(mapping.buildMemoryMb || requirements.memory_mb || '')}"></td>
                 <td><input class="form-control form-control-sm" name="mappings[${id}][build_disk_gb]" type="number" min="20" value="${esc(mapping.buildDiskGb || requirements.disk_gb || '')}"></td>
@@ -78,15 +80,18 @@ export default function initTemplateTargetMappings() {
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.error || 'Proxmox did not respond.');
             const current = select.value;
-            select.innerHTML = '<option value="">Select installation ISO</option>' + (payload.images || []).map((image) => `<option value="${esc(image.volid)}">${esc(image.volid)}</option>`).join('');
+            const canDownloadIso = Boolean(selectedBuilder(selectedTemplate()).artifact?.url);
+            select.innerHTML = `<option value="${canDownloadIso ? automaticIso : ''}">${canDownloadIso ? 'Auto (detect or download)' : 'Select installation ISO'}</option>` + (payload.images || []).map((image) => `<option value="${esc(image.volid)}">${esc(image.volid)}</option>`).join('');
             const artifact = selectedBuilder(selectedTemplate()).artifact || {};
             const isoFilename = artifact.file || artifact.url?.split('/').pop();
             const matchingIso = isoFilename
                 ? (payload.images || []).find((image) => image.volid.endsWith(`/${isoFilename}`))
                 : undefined;
-            select.value = current || matchingIso?.volid || '';
+            select.value = current || (canDownloadIso ? automaticIso : matchingIso?.volid || '');
             select.dataset.loaded = 'true';
-            status.textContent = `${(payload.images || []).length} ISO(s) found.`;
+            status.textContent = matchingIso && select.value === automaticIso
+                ? `Auto will use ${matchingIso.volid}.`
+                : `${(payload.images || []).length} ISO(s) found.`;
         } catch (error) {
             status.textContent = `Could not load ISOs (${error.message}).`;
         }

@@ -48,7 +48,10 @@ class RunnerTemplate extends Model
     public function isBuildable(): bool
     {
         return $this->template_catalog_id !== null
-            && $this->targetMappings()->whereNotNull('build_iso_file')->exists();
+            && $this->targetMappings()
+                ->whereNotNull('build_iso_file')
+                ->where('build_iso_file', '!=', '')
+                ->exists();
     }
 
     /**
@@ -92,6 +95,7 @@ class RunnerTemplate extends Model
 
         return $this->targetMappings()
             ->whereNotNull('runner_template_target.build_iso_file')
+            ->where('runner_template_target.build_iso_file', '!=', '')
             ->whereNotNull('proxmox_targets.build_iso_storage')
             ->whereNotNull('proxmox_targets.build_vm_storage')
             ->get();

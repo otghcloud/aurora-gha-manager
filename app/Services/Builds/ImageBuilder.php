@@ -7,7 +7,6 @@ use App\Exceptions\ProvisioningException;
 use App\Models\Builds\ImageBuild;
 use App\Models\Builds\LogEntry;
 use App\Services\Proxmox\ProxmoxClient;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -20,6 +19,7 @@ class ImageBuilder
         private readonly TemplateRebuilder $rebuilder = new TemplateRebuilder,
         private readonly TemplateCatalog $catalog = new TemplateCatalog,
         private readonly ?BuilderRegistry $builders = null,
+        private readonly ImageBuildFinalizer $finalizer = new ImageBuildFinalizer,
     ) {}
 
     /** @throws ProvisioningException When the builder cannot start or complete. */
@@ -40,13 +40,11 @@ class ImageBuilder
             throw new ProvisioningException('No installed template matches the build catalog ID '.$build->template_catalog_id.'.');
         }
 
-        DB::transaction(function () use ($build, $logPath) {
-            $build->forceFill([
-                'status' => BuildStatus::Running,
-                'started_at' => now(),
-                'log_path' => $logPath,
-            ])->save();
-        });
+        $build->forceFill([
+            'status' => BuildStatus::Running,
+            'started_at' => now(),
+            'log_path' => $logPath,
+        ])->save();
 
         try {
             $result = $this->builderRegistry()
@@ -67,37 +65,7 @@ class ImageBuilder
             return;
         }
 
-        DB::transaction(function () use ($build, $result, $template, $entry) {
-            $build->forceFill([
-                'status' => $result->successful ? BuildStatus::Succeeded : BuildStatus::Failed,
-                'exit_code' => $result->exitCode,
-                'process_pid' => null,
-                'finished_at' => now(),
-            ])->save();
-
-            if (! $result->successful) {
-                Log::error('Image build failed', [
-                    'build' => $build->id,
-                    'template_catalog_id' => $entry->id(),
-                    'exit_code' => $result->exitCode,
-                ]);
-
-                return;
-            }
-
-            try {
-                $this->rebuilder->promote($build, $result->templateVmid ?? (int) $build->template_vmid);
-            } catch (\Throwable $e) {
-                Log::error('Image build succeeded but the template record could not be updated', [
-                    'build' => $build->id,
-                    'template' => $template->id,
-                    'template_catalog_id' => $entry->id(),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        });
-
-        $this->rebuilder->advanceBatch($build->refresh());
+        $this->finalizer->complete($build, $result);
     }
 
     private function builderRegistry(): BuilderRegistry

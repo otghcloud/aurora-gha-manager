@@ -3,6 +3,7 @@
 namespace App\Services\Builds;
 
 use App\Enums\BuildStatus;
+use App\Events\ImageBuildCancelling;
 use App\Models\Builds\ImageBuild;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -26,6 +27,8 @@ class BuildCanceller
         if ($pid !== null) {
             $this->terminate($pid);
         }
+
+        event(new ImageBuildCancelling($build));
 
         $build->forceFill([
             'status' => BuildStatus::Cancelled,

@@ -48,6 +48,23 @@ class SettingsRepository
 
     public const DEFAULT_RUNNER_USERNAME = 'default_runner_username';
 
+    public const BUILD_API_URL = 'build_api_url';
+
+    public const KEEP_FAILED_BUILD_VM = 'keep_failed_build_vm';
+
+    public function buildApiUrl(): string
+    {
+        $url = trim((string) $this->get(self::BUILD_API_URL, ''));
+        $default = trim((string) config('app.build_api_url', ''));
+
+        return rtrim($url !== '' ? $url : ($default !== '' ? $default : (string) $this->get('app_url', config('app.url'))), '/');
+    }
+
+    public function keepFailedBuildVm(): bool
+    {
+        return $this->bool(self::KEEP_FAILED_BUILD_VM, false);
+    }
+
     public function templateAutoCheckEnabled(): bool
     {
         return $this->bool(self::TEMPLATE_AUTO_CHECK_ENABLED, false);

@@ -19,7 +19,6 @@ use App\Models\Templates\RunnerTemplate;
 use App\Services\Builds\ImageBuilder;
 use App\Services\Builds\TemplateCatalog;
 use App\Services\Builds\TemplateRebuilder;
-use App\Services\Proxmox\ProxmoxClient;
 use App\Services\Templates\TemplatePruner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -165,24 +164,6 @@ class RunnerTemplateController extends Controller
         $targets = $target !== null
             ? $runnerTemplate->targetMappings()->whereKey($target->id)->get()
             : $runnerTemplate->targetMappings()->whereIn('proxmox_targets.id', $request->targetIds())->get();
-
-        foreach ($targets as $node) {
-            if ($node->pivot->build_iso_file !== null || ! is_string($node->pivot->build_iso_url) || $node->pivot->build_iso_url === '') {
-                continue;
-            }
-
-            if ($node->build_iso_storage === null) {
-                return back()->with('error', "Set the build ISO storage on {$node->name} before downloading its installation ISO.");
-            }
-
-            try {
-                $isoFile = (new ProxmoxClient($node))->downloadIso($node->build_iso_storage, $node->pivot->build_iso_url);
-                $runnerTemplate->targetMappings()->updateExistingPivot($node->id, ['build_iso_file' => $isoFile]);
-                $node->pivot->build_iso_file = $isoFile;
-            } catch (Throwable $e) {
-                return back()->with('error', "Could not download the installation ISO for {$node->name}: {$e->getMessage()}");
-            }
-        }
 
         $targets = $targets->filter(fn (ProxmoxTarget $node): bool => $node->pivot->build_iso_file !== null);
 

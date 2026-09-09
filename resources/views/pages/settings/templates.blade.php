@@ -43,6 +43,14 @@
 							<span class="form-check-label">Automatically rebuild templates after activating an update</span>
 						</label>
 					</div>
+					<hr>
+					<div class="mb-0">
+						<label class="form-check form-switch">
+							<input class="form-check-input" name="keep_failed_build_vm" type="checkbox" value="1" @checked(old('keep_failed_build_vm', $settings['keep_failed_build_vm'] ?? '0') == '1')>
+							<span class="form-check-label">Keep failed build VM</span>
+						</label>
+						<small class="form-hint">Disabled by default. Retained VMs can be inspected and removed manually after a failed build.</small>
+					</div>
 
 					@if (! empty($settings[\App\Services\SettingsRepository::TEMPLATE_UPDATES_AVAILABLE]))
 						@php($updateData = json_decode($settings[\App\Services\SettingsRepository::TEMPLATE_UPDATES_AVAILABLE], true))

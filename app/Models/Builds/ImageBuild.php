@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
@@ -38,6 +39,11 @@ class ImageBuild extends Model
             'template_catalog_id' => 'string',
             'builder_type' => 'string',
             'credential_id' => 'integer',
+            'guest_last_sequence' => 'integer',
+            'guest_last_callback_at' => 'datetime',
+            'guest_exit_code' => 'integer',
+            'guest_finalizing_at' => 'datetime',
+            'keep_failed_vm' => 'boolean',
         ];
     }
 
@@ -81,6 +87,12 @@ class ImageBuild extends Model
     public function logEntries(): MorphMany
     {
         return $this->morphMany(LogEntry::class, 'loggable');
+    }
+
+    /** @return HasMany<ImageBuildGuestEvent, $this> */
+    public function guestEvents(): HasMany
+    {
+        return $this->hasMany(ImageBuildGuestEvent::class);
     }
 
     /** Return the label used for build breadcrumbs. */

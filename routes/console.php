@@ -27,6 +27,11 @@ Schedule::command('jobs:prune-logs')
     ->withoutOverlapping()
     ->runInBackground();
 
+Schedule::command('logs:prune-files')
+    ->dailyAt('03:40')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 Schedule::command('templates:check-updates')
     ->hourly()
     ->withoutOverlapping()

@@ -5,8 +5,6 @@ namespace App\Services\Templates;
 use App\Services\SettingsRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -22,6 +20,8 @@ class TemplateDownloadService
 
     public function __construct(
         private readonly SettingsRepository $settings,
+        private readonly TemplateSourceService $sources,
+        private readonly TemplateCatalogValidator $validator,
     ) {}
 
     /**
@@ -32,30 +32,10 @@ class TemplateDownloadService
     public function download(): array
     {
         return Cache::lock(self::LOCK_KEY, 120)->block(30, function (): array {
-            $root = $this->installRoot();
-            File::ensureDirectoryExists($root);
+            $result = $this->sources->importRepository((string) config('builds.templates_repository'), 'main', replaceExisting: true);
+            $this->activate($result['version']);
 
-            $tmpId = (string) Str::uuid();
-            $archive = $root.'/.tmp-'.$tmpId.'.tar.gz';
-            $extractDir = $root.'/.tmp-'.$tmpId;
-
-            try {
-                $this->fetchArchive($archive);
-                $extractedRoot = $this->extract($archive, $extractDir);
-                $version = $this->readVersion($extractedRoot);
-
-                $destination = $root.'/'.$version;
-
-                File::deleteDirectory($destination);
-                rename($extractedRoot, $destination);
-
-                $this->activate($version);
-
-                return ['version' => $version, 'path' => $destination];
-            } finally {
-                File::delete($archive);
-                File::deleteDirectory($extractDir);
-            }
+            return ['version' => $result['version'], 'path' => $result['path']];
         });
     }
 
@@ -65,17 +45,22 @@ class TemplateDownloadService
     public function activate(string $version): void
     {
         if ($version === self::BUNDLED) {
+            $this->validator->validate(rtrim((string) config('builds.image_builder_path'), '/'));
             $this->settings->set(SettingsRepository::TEMPLATE_ACTIVE_VERSION, null);
             $this->prune();
 
             return;
         }
 
-        $path = $this->installRoot().'/'.$version;
+        if (preg_match('/^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/', $version) !== 1) {
+            throw new RuntimeException('The template bundle version is invalid.');
+        }
 
-        if (! is_file($path.'/templates.json')) {
+        $path = $this->installRoot().'/'.$version;
+        if (! is_dir($path)) {
             throw new RuntimeException("Template bundle {$version} is not installed.");
         }
+        $this->validator->validate($path);
 
         $this->settings->set(SettingsRepository::TEMPLATE_ACTIVE_VERSION, $version);
 
@@ -102,6 +87,7 @@ class TemplateDownloadService
         // A pinned version whose directory has gone (pruned, or a fresh /data) must not leave the
         // catalog pointing at nothing. Default back to the bundled version.
         if (! is_dir($this->installRoot().'/'.$active)) {
+            $this->validator->validate(rtrim((string) config('builds.image_builder_path'), '/'));
             $this->settings->set(SettingsRepository::TEMPLATE_ACTIVE_VERSION, null);
 
             return self::BUNDLED;
@@ -113,6 +99,7 @@ class TemplateDownloadService
             return null;
         }
 
+        $this->validator->validate(rtrim((string) config('builds.image_builder_path'), '/'));
         $this->settings->set(SettingsRepository::TEMPLATE_ACTIVE_VERSION, null);
 
         return $bundled['version'];
@@ -201,55 +188,5 @@ class TemplateDownloadService
             'active' => $active,
             'bundled' => true,
         ];
-    }
-
-    private function fetchArchive(string $destination): void
-    {
-        $repository = rtrim((string) config('builds.templates_repository'), '/');
-        $url = preg_replace('#^https://github\.com/#', 'https://codeload.github.com/', $repository).'/tar.gz/refs/heads/main';
-
-        $response = Http::timeout(60)->get($url);
-
-        if (! $response->successful()) {
-            throw new RuntimeException("Failed to download templates archive: HTTP {$response->status()}.");
-        }
-
-        File::put($destination, $response->body());
-    }
-
-    /**
-     * GitHub tarballs contain a single top-level `{repo}-{ref}` directory; return its path.
-     */
-    private function extract(string $archive, string $extractDir): string
-    {
-        File::ensureDirectoryExists($extractDir);
-
-        (new \PharData($archive))->extractTo($extractDir, overwrite: true);
-
-        $entries = array_values(array_filter(scandir($extractDir) ?: [], fn (string $entry): bool => $entry[0] !== '.'));
-
-        if (count($entries) !== 1 || ! is_dir($extractDir.'/'.$entries[0])) {
-            throw new RuntimeException('Unexpected templates archive layout.');
-        }
-
-        return $extractDir.'/'.$entries[0];
-    }
-
-    private function readVersion(string $root): string
-    {
-        $path = $root.'/templates.json';
-
-        if (! is_readable($path)) {
-            throw new RuntimeException('Downloaded templates archive has no templates.json.');
-        }
-
-        $catalog = json_decode((string) file_get_contents($path), true);
-        $version = is_array($catalog) ? ($catalog['image_builder_version'] ?? null) : null;
-
-        if (! is_string($version) || $version === '') {
-            throw new RuntimeException('Downloaded templates.json has no image_builder_version.');
-        }
-
-        return $version;
     }
 }

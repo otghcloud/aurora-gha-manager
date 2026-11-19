@@ -10,6 +10,8 @@ use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Pools\Pool;
 use App\Models\Runners\Runner;
 use App\Models\Templates\RunnerTemplate;
+use App\Services\Builds\TemplateCatalog;
+use App\Services\Builds\TemplateCatalogEntry;
 use App\Services\SettingsRepository;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -157,6 +159,22 @@ class RunnerLifecycleTest extends TestCase
 
         $this->assertSame('/opt/actions-runner', $pool->runnerDirectory());
         $this->assertSame('C:\\actions-runner', PoolOs::Windows->defaultRunnerDir());
+    }
+
+    public function test_a_pool_uses_the_runner_directory_from_its_template_catalog_entry(): void
+    {
+        $pool = $this->makePool(['self-hosted', 'linux']);
+        $pool->runnerTemplate->forceFill(['template_catalog_id' => 'ubuntu-custom'])->save();
+        $entry = new TemplateCatalogEntry([
+            'builders' => ['packer' => ['provisioner' => ['runner_directory' => '/srv/actions-runner']]],
+        ]);
+
+        $this->mock(TemplateCatalog::class)
+            ->shouldReceive('entryForId')
+            ->with('ubuntu-custom')
+            ->andReturn($entry);
+
+        $this->assertSame('/srv/actions-runner', $pool->runnerDirectory());
     }
 
     /**

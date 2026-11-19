@@ -78,6 +78,53 @@
 			</form>
 		</div>
 
+		<div class="card mb-4">
+			<div class="card-header card-header-light">
+				<h3 class="card-title mb-0">Import a template source</h3>
+			</div>
+			<div class="card-body">
+				<p class="text-secondary">
+					Imports are checked against the template catalog schema and stored inactive. Review the installed bundle and explicitly activate it below.
+					Remote sources are limited to public GitHub HTTPS repositories and codeload archives; host commands are never run.
+				</p>
+				<form action="{{ route('settings.templates.sources.import') }}" class="mb-4" enctype="multipart/form-data" method="POST">
+					@csrf
+					<input name="source_type" type="hidden" value="url">
+					<label class="form-label" for="template-source-url">GitHub codeload archive URL</label>
+					<div class="input-group">
+						<input class="form-control" id="template-source-url" name="url" placeholder="https://codeload.github.com/owner/repository/tar.gz/refs/heads/main" required type="url">
+						<button class="btn btn-outline-primary" type="submit">Validate and import URL</button>
+					</div>
+				</form>
+				<form action="{{ route('settings.templates.sources.import') }}" class="mb-4" method="POST">
+					@csrf
+					<input name="source_type" type="hidden" value="repository">
+					<label class="form-label" for="template-source-repository">GitHub repository</label>
+					<div class="row g-2">
+						<div class="col-md-7">
+							<input class="form-control" id="template-source-repository" name="repository" placeholder="https://github.com/owner/repository" required type="url">
+						</div>
+						<div class="col-md-3">
+							<input class="form-control" name="ref" placeholder="main" type="text" value="main">
+						</div>
+						<div class="col-md-2">
+							<button class="btn btn-outline-primary w-100" type="submit">Import repository</button>
+						</div>
+					</div>
+				</form>
+				<form action="{{ route('settings.templates.sources.import') }}" enctype="multipart/form-data" method="POST">
+					@csrf
+					<input name="source_type" type="hidden" value="upload">
+					<label class="form-label" for="template-source-archive">Uploaded .tar.gz archive (25 MiB maximum)</label>
+					<div class="input-group">
+						<input accept=".tar.gz,.tgz,application/gzip" class="form-control" id="template-source-archive" name="archive" required type="file">
+						<button class="btn btn-outline-primary" type="submit">Validate and import archive</button>
+					</div>
+				</form>
+				<small class="form-hint d-block mt-2">See <code>docs/templates/README.md</code> for the archive layout, schema, and offline validation command.</small>
+			</div>
+		</div>
+
 		<div class="card">
 			<div class="card-header card-header-light d-flex align-items-center justify-content-between">
 				<h3 class="card-title mb-0">Installed template bundles</h3>

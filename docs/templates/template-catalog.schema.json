@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aurora runner template catalog",
+  "type": "object",
+  "required": ["schema_version", "image_builder_version", "templates"],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "image_builder_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$"
+    },
+    "runner_images_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "templates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/template"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "template": {
+      "type": "object",
+      "required": ["id", "name", "metadata", "platform", "builders"],
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "description": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "required": ["version"],
+          "properties": {
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "platform": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "enum": ["linux", "windows"]
+            }
+          },
+          "additionalProperties": true
+        },
+        "builders": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": ["path", "build_manifest"],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/relativePath"
+              },
+              "build_manifest": {
+                "$ref": "#/$defs/relativePath"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "template_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "template_json_path": {
+          "$ref": "#/$defs/relativePath"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

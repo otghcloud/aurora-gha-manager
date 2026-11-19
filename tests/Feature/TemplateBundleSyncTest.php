@@ -138,7 +138,7 @@ class TemplateBundleSyncTest extends TestCase
 
         file_put_contents(
             $root.'/templates.json',
-            json_encode(['image_builder_version' => $version, 'templates' => []])
+            json_encode(['schema_version' => 2, 'image_builder_version' => $version, 'templates' => []])
         );
     }
 }

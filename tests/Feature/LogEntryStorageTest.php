@@ -78,6 +78,7 @@ class LogEntryStorageTest extends TestCase
             'proxmox_target_id' => $target->id,
             'template_catalog_id' => 'ubuntu-24.04',
             'status' => BuildStatus::Succeeded,
+            'finished_at' => now(),
             'log_path' => $logPath,
         ]);
     }
@@ -159,5 +160,41 @@ class LogEntryStorageTest extends TestCase
         $this->assertFileExists($unstored);
         $this->assertNull($withEntry->fresh()->log_path);
         $this->assertNotNull($withoutEntry->fresh()->log_path);
+    }
+
+    public function test_the_prune_command_preserves_workflow_job_files_for_configured_retention(): void
+    {
+        $path = $this->directory.'/job.log';
+        file_put_contents($path, 'stored job output');
+        $job = WorkflowJob::create([
+            'environment_id' => $this->environment->id,
+            'github_job_id' => 4242,
+            'github_run_id' => 99,
+            'repository_full_name' => 'otghcloud/demo',
+            'job_name' => 'build',
+            'workflow_name' => 'CI',
+            'status' => 'completed',
+            'log_path' => $path,
+        ]);
+        LogEntry::store($job, LogEntry::CHANNEL_JOB, 'stored job output');
+
+        $this->artisan('logs:prune-files')->assertExitCode(0);
+
+        $this->assertFileExists($path);
+        $this->assertSame($path, $job->fresh()->log_path);
+    }
+
+    public function test_the_prune_command_preserves_active_build_logs_even_if_a_copy_exists(): void
+    {
+        $path = $this->directory.'/active-build.log';
+        file_put_contents($path, 'in progress');
+        $build = $this->build($path);
+        $build->forceFill(['status' => BuildStatus::Running, 'finished_at' => null])->save();
+        LogEntry::store($build, LogEntry::CHANNEL_BUILD, 'partial copy');
+
+        $this->artisan('logs:prune-files')->assertExitCode(0);
+
+        $this->assertFileExists($path);
+        $this->assertSame($path, $build->fresh()->log_path);
     }
 }

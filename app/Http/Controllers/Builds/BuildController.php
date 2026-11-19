@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Builds;
 
 use App\DataTables\Builds\BuildsDataTable;
+use App\Enums\BuildStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Builds\ImageBuild;
+use App\Models\Infrastructure\ProxmoxTarget;
+use App\Models\Templates\RunnerTemplate;
 use App\Services\Builds\BuildCanceller;
 use App\Services\Builds\BuildProgress;
 use App\Services\Builds\TemplateCatalog;
@@ -28,7 +31,15 @@ class BuildController extends Controller
     /** Display the image build index DataTable. */
     public function index(BuildsDataTable $dataTable): mixed
     {
-        return $dataTable->render('pages.builds.index');
+        return $dataTable->render('pages.builds.index', [
+            'templates' => RunnerTemplate::query()->orderBy('name')->get(['id', 'name']),
+            'nodes' => ProxmoxTarget::query()->orderBy('name')->get(['id', 'name']),
+            'builtCount' => ImageBuild::query()->where('status', BuildStatus::Succeeded->value)->count(),
+            'failedCount' => ImageBuild::query()->where('status', BuildStatus::Failed->value)->count(),
+            'inProgressCount' => ImageBuild::query()
+                ->whereIn('status', [BuildStatus::Queued->value, BuildStatus::Running->value])
+                ->count(),
+        ]);
     }
 
     /** Display one image build and its progress/log metadata. */

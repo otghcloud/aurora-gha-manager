@@ -26,6 +26,11 @@
 							</div>
 						</div>
 					</div>
+					@hasSection('page-table-summary')
+						<div class="card-body border-bottom">
+							@yield('page-table-summary')
+						</div>
+					@endif
 					<div class="table-responsive-datatable">
 						{{ $dataTable->table() }}
 					</div>

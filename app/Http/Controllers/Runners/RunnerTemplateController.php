@@ -20,6 +20,7 @@ use App\Services\Builds\ImageBuilder;
 use App\Services\Builds\TemplateCatalog;
 use App\Services\Builds\TemplateRebuilder;
 use App\Services\Templates\TemplatePruner;
+use App\Services\Templates\TemplateUpdateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -38,7 +39,29 @@ class RunnerTemplateController extends Controller
     /** Display runner templates. */
     public function index(RunnerTemplatesDataTable $dataTable): mixed
     {
-        return $dataTable->render('pages.templates.index');
+        if (request()->ajax()) {
+            return $dataTable->render('pages.templates.index');
+        }
+
+        $templates = RunnerTemplate::query()
+            ->with(['environment', 'pools', 'targetMappings'])
+            ->withCount('pools')
+            ->orderBy('name')
+            ->get();
+        $catalogEntries = [];
+        $availableUpdates = [];
+        $updates = app(TemplateUpdateService::class);
+
+        foreach ($templates as $template) {
+            $catalogEntries[$template->template_catalog_id] = $this->catalog->entryForId($template->template_catalog_id);
+            $availableUpdates[$template->id] = $updates->getAvailableUpdateVersion($template->template_catalog_id);
+        }
+
+        return view('pages.templates.index', [
+            'templates' => $templates,
+            'catalogEntries' => $catalogEntries,
+            'availableUpdates' => $availableUpdates,
+        ]);
     }
 
     /** Display the runner template creation form. */

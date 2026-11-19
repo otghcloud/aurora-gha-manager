@@ -152,8 +152,8 @@ class SetupController extends Controller
 
         return [
             [
-                'label' => 'PHP 8.3 or newer',
-                'passed' => version_compare(PHP_VERSION, '8.3.0', '>='),
+                'label' => 'PHP 8.4.1 or newer',
+                'passed' => version_compare(PHP_VERSION, '8.4.1', '>='),
                 'detail' => PHP_VERSION,
             ],
             [

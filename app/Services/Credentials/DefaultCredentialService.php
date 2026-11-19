@@ -5,7 +5,7 @@ namespace App\Services\Credentials;
 use App\Enums\PoolOs;
 use App\Models\Credentials\Credential;
 use App\Services\SettingsRepository;
-use phpseclib3\Crypt\RSA;
+use phpseclib4\Crypt\RSA;
 
 /**
  * Creates and maintains the default Linux credential used by image builds.

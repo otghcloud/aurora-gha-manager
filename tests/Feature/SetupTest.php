@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\Credentials\Credential;
 use App\Providers\AppServiceProvider;
+use App\Services\Credentials\DefaultCredentialService;
 use App\Services\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use phpseclib4\Crypt\PublicKeyLoader;
 use Tests\TestCase;
 
 class SetupTest extends TestCase
@@ -16,6 +19,22 @@ class SetupTest extends TestCase
     {
         $this->get('/')->assertRedirect(route('setup.show'));
         $this->get('/login')->assertRedirect(route('setup.show'));
+    }
+
+    public function test_setup_shows_the_supported_php_minimum(): void
+    {
+        $this->get(route('setup.show'))->assertOk()->assertSee('PHP 8.4.1 or newer');
+    }
+
+    public function test_default_ssh_credential_can_be_regenerated(): void
+    {
+        Credential::query()->where('name', 'Default Linux SSH')->delete();
+
+        $credential = app(DefaultCredentialService::class)->ensureLinuxCredential();
+        $key = PublicKeyLoader::loadPrivateKey($credential->private_key);
+
+        $this->assertSame($credential->public_key, $key->getPublicKey()->toString('OpenSSH'));
+        $this->assertNotEmpty($credential->password);
     }
 
     public function test_the_setup_wizard_creates_an_administrator_and_marks_the_install_complete(): void

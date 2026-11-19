@@ -30,6 +30,7 @@ We recommend creating a separate branch for each distinct type of change you're 
 
 To keep our codebase clean and predictable, our workflows enforce code practices within this repository.
 
+- **Requirements**: PHP 8.4.1 or newer and Node.js 22.13 or newer.
 - **PHP**: Formatted with Laravel Pint (`./vendor/bin/pint --test`) and tested with PHPUnit (`php artisan test`).
 - **Markdown**: Validated with `markdownlint-cli2` (config at `.github/rules/.markdownlint.jsonc`).
 

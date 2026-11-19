@@ -8,11 +8,11 @@
     "require": {
         "otghcloud/aurora-gha-plugin-packer": "^1.0.1",
         "otghcloud/aurora-gha-plugin-cloudimage": "^1.1.1",
-        "php": "^8.3",
+        "php": "^8.4.1",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "livewire/livewire": "^4.4",
-        "phpseclib/phpseclib": "^3.0",
+        "phpseclib/phpseclib": "^4.0",
         "yajra/laravel-datatables-buttons": "^13.0",
         "yajra/laravel-datatables-html": "^13.0",
         "yajra/laravel-datatables-oracle": "^13.0"
@@ -24,7 +24,7 @@
         "laravel/pint": "^1.27",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^12.5.12"
+        "phpunit/phpunit": "^13.4.7"
     },
     "autoload": {
         "psr-4": {

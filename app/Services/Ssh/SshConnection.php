@@ -3,9 +3,9 @@
 namespace App\Services\Ssh;
 
 use App\Exceptions\RemoteException;
-use phpseclib3\Crypt\PublicKeyLoader;
-use phpseclib3\Net\SFTP;
-use phpseclib3\Net\SSH2;
+use phpseclib4\Crypt\PublicKeyLoader;
+use phpseclib4\Net\SFTP;
+use phpseclib4\Net\SSH2;
 
 /**
  * Authenticated SSH/SFTP connection wrapper for runner provisioning tasks.
@@ -32,7 +32,9 @@ class SshConnection
     public function putString(string $remotePath, string $content): self
     {
         $this->sftpWithRetry(
-            fn (SFTP $sftp): bool => $sftp->put($remotePath, $content) !== false,
+            function (SFTP $sftp) use ($remotePath, $content): void {
+                $sftp->put($remotePath, $content);
+            },
             "Could not write {$remotePath} on {$this->host}"
         );
 
@@ -46,7 +48,9 @@ class SshConnection
         }
 
         $this->sftpWithRetry(
-            fn (SFTP $sftp): bool => $sftp->put($remotePath, $localPath, SFTP::SOURCE_LOCAL_FILE) !== false,
+            function (SFTP $sftp) use ($remotePath, $localPath): void {
+                $sftp->put($remotePath, $localPath, SFTP::SOURCE_LOCAL_FILE);
+            },
             "Could not upload {$localPath} to {$this->host}:{$remotePath}"
         );
 
@@ -60,30 +64,26 @@ class SshConnection
      * restarting services) closes established sessions, which surfaces here rather than at login.
      * Mirrors the reconnect-and-retry that exec() already does for its own channel errors.
      *
-     * @param  callable(SFTP): bool  $operation
+     * @param  callable(SFTP): void  $operation
      */
     private function sftpWithRetry(callable $operation, string $failureMessage): void
     {
         try {
-            if ($operation($this->sftp())) {
-                return;
-            }
+            $operation($this->sftp());
         } catch (\RuntimeException $e) {
             $this->disconnect();
 
-            if (! $operation($this->sftp())) {
-                throw new RemoteException($failureMessage);
+            try {
+                $operation($this->sftp());
+            } catch (\RuntimeException $retryException) {
+                throw new RemoteException($failureMessage, 0, $retryException);
             }
-
-            return;
         }
-
-        throw new RemoteException($failureMessage);
     }
 
     public function chmod(int $mode, string $remotePath): self
     {
-        $this->sftp()->chmod($mode, $remotePath);
+        $this->sftp()->chmod($remotePath, $mode);
 
         return $this;
     }
@@ -112,15 +112,16 @@ class SshConnection
     public function run(array|string $commands, ?callable $onOutput = null): string
     {
         $output = [];
+        $callback = $onOutput === null ? null : \Closure::fromCallable($onOutput);
 
         foreach ((array) $commands as $command) {
-            $output[] = trim($this->execWithRetry($command, $onOutput));
+            $output[] = trim($this->execWithRetry($command, $callback));
         }
 
         return implode("\n", $output);
     }
 
-    private function execWithRetry(string $command, ?callable $onOutput): string
+    private function execWithRetry(string $command, ?\Closure $onOutput): string
     {
         try {
             return (string) $this->ssh()->exec($command, $onOutput);
@@ -174,8 +175,12 @@ class SshConnection
     private function authenticate(SSH2 $connection): SSH2
     {
         $credential = $this->privateKey !== null && $this->privateKey !== ''
-            ? PublicKeyLoader::load($this->privateKey, $this->passphrase ?: false)
+            ? PublicKeyLoader::loadPrivateKey($this->privateKey, $this->passphrase ?: null)
             : $this->password;
+
+        if ($credential === null) {
+            throw new RemoteException("SSH authentication material is missing for {$this->username}@{$this->host}");
+        }
 
         if (! $connection->login($this->username, $credential)) {
             throw new RemoteException("SSH authentication failed for {$this->username}@{$this->host}");

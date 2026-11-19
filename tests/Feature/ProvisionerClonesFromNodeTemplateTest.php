@@ -68,8 +68,25 @@ class ProvisionerClonesFromNodeTemplateTest extends TestCase
 
         $this->spawnAndExpectNoBoot($pool, $second);
 
-        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'https://pve02.example.com:8006/api2/json/nodes/pve02/qemu/802/clone'));
+        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'https://pve02.example.com:8006/api2/json/nodes/pve02/qemu/802/clone')
+            && (int) ($request->data()['full'] ?? -1) === 0
+            && ! array_key_exists('storage', $request->data()));
         Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), '/qemu/801/clone'));
+    }
+
+    public function test_a_runner_uses_the_configured_runner_storage_with_a_full_clone(): void
+    {
+        $node = $this->makeNode('pve01', 'https://pve01.example.com:8006/api2/json', templateVmid: 801);
+        $node->update(['runner_vm_storage' => 'runner-ssd']);
+        $pool = $this->makePool([$node]);
+
+        $this->fakeProxmox();
+
+        $this->spawnAndExpectNoBoot($pool, $node);
+
+        Http::assertSent(fn (Request $request): bool => str_contains($request->url(), '/nodes/pve01/qemu/801/clone')
+            && (int) ($request->data()['full'] ?? 0) === 1
+            && ($request->data()['storage'] ?? null) === 'runner-ssd');
     }
 
     public function test_a_runner_is_configured_onto_the_nodes_bridge_and_vlan(): void

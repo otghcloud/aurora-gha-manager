@@ -51,6 +51,7 @@ class ProxmoxTargetRequest extends FormRequest
             'runner_vmid_range_end' => ['required', 'integer', 'gt:runner_vmid_range_start'],
             'build_iso_storage' => ['nullable', 'string', 'max:255'],
             'build_vm_storage' => ['nullable', 'string', 'max:255'],
+            'runner_vm_storage' => ['nullable', 'string', 'max:255'],
             'build_cpu_type' => ['nullable', 'string', 'max:255'],
             'network_bridge' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z][A-Za-z0-9_.-]*$/'],
             'vlan_tag' => ['nullable', 'integer', 'min:1', 'max:4094'],

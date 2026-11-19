@@ -81,6 +81,22 @@ class WarmPoolsTest extends TestCase
         $this->assertSame(3, $pool->fresh()->minIdleRunnersOn($this->target));
     }
 
+    public function test_pool_forms_use_os_slugs_to_look_up_template_label_presets(): void
+    {
+        $pool = $this->makePool('label-presets', [
+            $this->target->id => ['min_idle_runners' => 0, 'max_concurrent' => 4],
+        ]);
+
+        foreach (PoolOs::cases() as $os) {
+            $this->template->update(['os' => $os]);
+            $templateOs = json_encode([$this->template->id => $os->slug()]);
+
+            foreach ([route('pools.create'), route('pools.edit', $pool)] as $url) {
+                $this->get($url)->assertOk()->assertSee("data-template-os='{$templateOs}'", false);
+            }
+        }
+    }
+
     public function test_pool_totals_are_the_sum_of_its_nodes(): void
     {
         $other = $this->makeTarget('PVE 02', 'pve-02', 802);

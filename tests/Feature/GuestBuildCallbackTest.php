@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\Builds\BuildResult;
 use App\Enums\BuildStatus;
 use App\Models\Builds\ImageBuild;
 use App\Models\GitHub\GitHubAccount;
@@ -9,8 +10,10 @@ use App\Models\Infrastructure\Environment;
 use App\Models\Infrastructure\ProxmoxTarget;
 use App\Models\Templates\RunnerTemplate;
 use App\Services\Builds\GuestBuildCallbackService;
+use App\Services\Builds\ImageBuildFinalizer;
 use App\Services\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class GuestBuildCallbackTest extends TestCase
@@ -108,6 +111,32 @@ class GuestBuildCallbackTest extends TestCase
         $credentials = app(GuestBuildCallbackService::class)->issueCredentials($this->build);
 
         $this->assertSame('https://manager.example.com', $credentials['url']);
+    }
+
+    public function test_failed_guest_details_are_retained_in_the_production_error_log(): void
+    {
+        Log::spy();
+        $credentials = app(GuestBuildCallbackService::class)->issueCredentials($this->build);
+        $error = 'Cloud image stage failed: install-apt-common (exit code 100).';
+
+        $this->withToken($credentials['token'])->postJson(route('builds.guest-events', $this->build), [
+            'sequence' => 1,
+            'type' => 'completed',
+            'stage_id' => 'install-apt-common',
+            'outcome' => 'failed',
+            'exit_code' => 100,
+            'error' => $error,
+        ])->assertOk();
+
+        app(ImageBuildFinalizer::class)->complete($this->build, new BuildResult(false, 100));
+
+        Log::shouldHaveReceived('error')->once()->with('Image build failed', [
+            'build' => $this->build->id,
+            'template_catalog_id' => 'ubuntu-26.04',
+            'exit_code' => 100,
+            'guest_stage_id' => 'install-apt-common',
+            'guest_error' => $error,
+        ]);
     }
 
     public function test_build_api_url_uses_the_environment_default_when_not_saved(): void

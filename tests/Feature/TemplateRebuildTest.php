@@ -14,6 +14,7 @@ use App\Models\Pools\Pool;
 use App\Models\Runners\Runner;
 use App\Models\Templates\RetiredTemplateVmid;
 use App\Models\Templates\RunnerTemplate;
+use App\Services\Builds\TemplateCatalogEntry;
 use App\Services\Builds\TemplateRebuilder;
 use App\Services\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,8 @@ class TemplateRebuildTest extends TestCase
     private ProxmoxTarget $target;
 
     private RunnerTemplate $template;
+
+    private TemplateCatalogEntry $catalogEntry;
 
     protected function setUp(): void
     {
@@ -68,6 +71,11 @@ class TemplateRebuildTest extends TestCase
             'name' => 'ubuntu-slim',
             'os' => PoolOs::Linux,
             'template_catalog_id' => 'ubuntu-24.04-proxmox-x64',
+        ]);
+
+        $this->catalogEntry = new TemplateCatalogEntry([
+            'id' => $this->template->template_catalog_id,
+            'builders' => ['packer' => ['type' => 'packer']],
         ]);
 
         $this->template->targetMappings()->attach($this->target->id, [
@@ -186,7 +194,7 @@ class TemplateRebuildTest extends TestCase
         $build->load(['environment.githubAccount', 'runnerTemplate', 'proxmoxTarget']);
 
         $method = new ReflectionMethod(PackerBuilder::class, 'environmentVariables');
-        $variables = $method->invoke(new PackerBuilder, $build);
+        $variables = $method->invoke(new PackerBuilder, $build, $this->catalogEntry);
 
         $this->assertSame('806', $variables['PKR_VAR_pmx_template_vmid']);
         $this->assertSame('tpl-ubuntu-slim', $variables['PKR_VAR_pmx_template_name']);
@@ -214,7 +222,7 @@ class TemplateRebuildTest extends TestCase
         $build->load(['environment.githubAccount', 'runnerTemplate', 'proxmoxTarget']);
 
         $method = new ReflectionMethod(PackerBuilder::class, 'environmentVariables');
-        $variables = $method->invoke(new PackerBuilder, $build);
+        $variables = $method->invoke(new PackerBuilder, $build, $this->catalogEntry);
 
         // Proxmox rejects `tag=0`, so the variable has to be absent rather than zero.
         $this->assertArrayNotHasKey('PKR_VAR_pmx_vlan_tag', $variables);
@@ -236,7 +244,7 @@ class TemplateRebuildTest extends TestCase
         $build->load(['environment.githubAccount', 'runnerTemplate', 'proxmoxTarget']);
 
         $method = new ReflectionMethod(PackerBuilder::class, 'environmentVariables');
-        $variables = $method->invoke(new PackerBuilder, $build);
+        $variables = $method->invoke(new PackerBuilder, $build, $this->catalogEntry);
 
         $this->assertSame('8', $variables['PKR_VAR_build_cpu_cores']);
         $this->assertSame('16384', $variables['PKR_VAR_build_memory_mb']);
@@ -255,7 +263,7 @@ class TemplateRebuildTest extends TestCase
         $build->load(['environment.githubAccount', 'runnerTemplate', 'proxmoxTarget']);
 
         $method = new ReflectionMethod(PackerBuilder::class, 'environmentVariables');
-        $variables = $method->invoke(new PackerBuilder, $build);
+        $variables = $method->invoke(new PackerBuilder, $build, $this->catalogEntry);
 
         $this->assertArrayNotHasKey('PKR_VAR_build_cpu_cores', $variables);
         $this->assertArrayNotHasKey('PKR_VAR_build_memory_mb', $variables);

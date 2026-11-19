@@ -2675,16 +2675,16 @@
         },
         {
             "name": "otghcloud/aurora-gha-plugin-packer",
-            "version": "v1.0.1",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/otghcloud/aurora-gha-plugin-packer.git",
-                "reference": "16f4dca1344b7fd9f9db827ab7993b0bfe16fdf0"
+                "reference": "6addf7327ca78fce365ae08503f83ed2a427fca7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-packer/zipball/16f4dca1344b7fd9f9db827ab7993b0bfe16fdf0",
-                "reference": "16f4dca1344b7fd9f9db827ab7993b0bfe16fdf0",
+                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-packer/zipball/6addf7327ca78fce365ae08503f83ed2a427fca7",
+                "reference": "6addf7327ca78fce365ae08503f83ed2a427fca7",
                 "shasum": ""
             },
             "require": {
@@ -2711,9 +2711,9 @@
             "description": "Packer builder plugin for Proxmox GHA Manager",
             "support": {
                 "issues": "https://github.com/otghcloud/aurora-gha-plugin-packer/issues",
-                "source": "https://github.com/otghcloud/aurora-gha-plugin-packer/tree/v1.0.1"
+                "source": "https://github.com/otghcloud/aurora-gha-plugin-packer/tree/v1.0.2"
             },
-            "time": "2026-09-07T23:17:32+00:00"
+            "time": "2026-11-19T01:30:05+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",

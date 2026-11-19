@@ -34,6 +34,8 @@ class ImageBuildFinalizer
                     'build' => $build->id,
                     'template_catalog_id' => $build->template_catalog_id,
                     'exit_code' => $result->exitCode,
+                    'guest_stage_id' => $build->guest_stage_id,
+                    'guest_error' => $build->guest_error,
                 ]);
 
                 return;

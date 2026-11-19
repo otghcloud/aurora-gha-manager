@@ -21,8 +21,8 @@ class LabelPresets
     {
         return match ($os) {
             PoolOs::Linux => [
-                'Ubuntu 24.04' => ['self-hosted', 'linux', 'x64', 'ubuntu-24.04', 'ubuntu-latest'],
-                'Ubuntu 26.04' => ['self-hosted', 'linux', 'x64', 'ubuntu-26.04'],
+                'Ubuntu 24.04' => ['self-hosted', 'linux', 'x64', 'ubuntu-24.04'],
+                'Ubuntu 26.04' => ['self-hosted', 'linux', 'x64', 'ubuntu-26.04', 'ubuntu-latest'],
                 'Ubuntu slim' => ['self-hosted', 'linux', 'x64', 'ubuntu-slim'],
             ],
             PoolOs::Windows => [

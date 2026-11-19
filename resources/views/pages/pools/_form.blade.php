@@ -1,5 +1,5 @@
 @php($isUpdate = $pool->exists)
-@php($templateOs = $templates->pluck('os.value', 'id'))
+@php($templateOs = $templates->mapWithKeys(fn ($template) => [$template->id => $template->os->slug()]))
 
 <div class="card">
 	<div class="card-body">

@@ -115,7 +115,7 @@ class CloudImageFinalizationTest extends TestCase
 
     public function test_stale_finalization_can_be_recovered(): void
     {
-        $this->build->forceFill(['guest_finalizing_at' => now()->subMinutes(16)])->save();
+        $this->build->forceFill(['guest_finalizing_at' => now()->subDays(4)])->save();
 
         $this->assertTrue(app(CloudImageGuestBuildReconciler::class)->claimFinalization($this->build));
     }

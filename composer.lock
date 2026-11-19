@@ -857,16 +857,16 @@
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "3.5.0",
+            "version": "3.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "b7d9cd94918e1f042d22cf188a7a866e5906bf1d"
+                "reference": "ef2058cc884d864affa6ef7cd23a68d45e015c2f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/b7d9cd94918e1f042d22cf188a7a866e5906bf1d",
-                "reference": "b7d9cd94918e1f042d22cf188a7a866e5906bf1d",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/ef2058cc884d864affa6ef7cd23a68d45e015c2f",
+                "reference": "ef2058cc884d864affa6ef7cd23a68d45e015c2f",
                 "shasum": ""
             },
             "require": {
@@ -958,7 +958,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/3.5.0"
+                "source": "https://github.com/guzzle/psr7/tree/3.5.1"
             },
             "funding": [
                 {
@@ -974,7 +974,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-18T15:29:09+00:00"
+            "time": "2026-11-19T20:35:18+00:00"
         },
         {
             "name": "guzzlehttp/uri-template",
@@ -2633,21 +2633,21 @@
         },
         {
             "name": "otghcloud/aurora-gha-plugin-cloudimage",
-            "version": "v1.1.3",
+            "version": "v1.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage.git",
-                "reference": "b64141db90b8f3dc0966f0936c5ca4d447a5a042"
+                "reference": "143e033ca5a52d7783a3e584a78b67e81d77b216"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-cloudimage/zipball/b64141db90b8f3dc0966f0936c5ca4d447a5a042",
-                "reference": "b64141db90b8f3dc0966f0936c5ca4d447a5a042",
+                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-cloudimage/zipball/143e033ca5a52d7783a3e584a78b67e81d77b216",
+                "reference": "143e033ca5a52d7783a3e584a78b67e81d77b216",
                 "shasum": ""
             },
             "require": {
                 "laravel/framework": "^13.17",
-                "php": "^8.3"
+                "php": "^8.4"
             },
             "type": "library",
             "extra": {
@@ -2669,27 +2669,27 @@
             "description": "Cloud image builder plugin for Proxmox GHA Manager",
             "support": {
                 "issues": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage/issues",
-                "source": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage/tree/v1.1.3"
+                "source": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage/tree/v1.1.4"
             },
-            "time": "2026-11-19T19:38:39+00:00"
+            "time": "2026-11-19T23:06:11+00:00"
         },
         {
             "name": "otghcloud/aurora-gha-plugin-packer",
-            "version": "v1.0.3",
+            "version": "v1.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/otghcloud/aurora-gha-plugin-packer.git",
-                "reference": "7f4dfef762f0f9910e1f6170746ea82780b6f8fb"
+                "reference": "7cc36ad21d404d3bdffb62c98c6fde348b508fc3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-packer/zipball/7f4dfef762f0f9910e1f6170746ea82780b6f8fb",
-                "reference": "7f4dfef762f0f9910e1f6170746ea82780b6f8fb",
+                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-packer/zipball/7cc36ad21d404d3bdffb62c98c6fde348b508fc3",
+                "reference": "7cc36ad21d404d3bdffb62c98c6fde348b508fc3",
                 "shasum": ""
             },
             "require": {
                 "laravel/framework": "^13.17",
-                "php": "^8.3"
+                "php": "^8.4"
             },
             "type": "library",
             "extra": {
@@ -2711,9 +2711,9 @@
             "description": "Packer builder plugin for Proxmox GHA Manager",
             "support": {
                 "issues": "https://github.com/otghcloud/aurora-gha-plugin-packer/issues",
-                "source": "https://github.com/otghcloud/aurora-gha-plugin-packer/tree/v1.0.3"
+                "source": "https://github.com/otghcloud/aurora-gha-plugin-packer/tree/v1.0.4"
             },
-            "time": "2026-11-19T19:40:28+00:00"
+            "time": "2026-11-19T23:09:05+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",

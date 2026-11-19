@@ -27,6 +27,18 @@ class ProxmoxTarget extends Model
 
     public const AUTH_REALM_PASSWORD = 'password';
 
+    public const TIMEOUT_DEFAULTS = [
+        'proxmox_api_timeout' => 120,
+        'proxmox_import_timeout' => 3600,
+        'proxmox_task_timeout' => 3600,
+        'proxmox_shutdown_timeout' => 300,
+        'cloudimage_guest_ip_timeout' => 600,
+        'cloudimage_ssh_timeout' => 600,
+        'cloudimage_build_timeout' => 43200,
+    ];
+
+    protected $attributes = self::TIMEOUT_DEFAULTS;
+
     protected function casts(): array
     {
         return [
@@ -43,6 +55,13 @@ class ProxmoxTarget extends Model
             'runner_vmid_range_start' => 'integer',
             'runner_vmid_range_end' => 'integer',
             'vlan_tag' => 'integer',
+            'proxmox_api_timeout' => 'integer',
+            'proxmox_import_timeout' => 'integer',
+            'proxmox_task_timeout' => 'integer',
+            'proxmox_shutdown_timeout' => 'integer',
+            'cloudimage_guest_ip_timeout' => 'integer',
+            'cloudimage_ssh_timeout' => 'integer',
+            'cloudimage_build_timeout' => 'integer',
         ];
     }
 
@@ -68,7 +87,7 @@ class ProxmoxTarget extends Model
     {
         return $this->belongsToMany(RunnerTemplate::class, 'runner_template_target', 'proxmox_target_id', 'runner_template_id')
             ->using(RunnerTemplateTarget::class)
-            ->withPivot(['template_vmid', 'generation', 'build_iso_file', 'build_iso_url', 'build_cores', 'build_memory_mb', 'build_disk_gb', 'availability_status', 'last_built_at']);
+            ->withPivot(['template_vmid', 'generation', 'build_iso_file', 'build_iso_url', 'build_cores', 'build_memory_mb', 'build_disk_gb', 'availability_status', 'last_built_at', 'imported_storage', 'imported_at']);
     }
 
     /** @return BelongsToMany<Pool, $this> Pools assigned to this target. */

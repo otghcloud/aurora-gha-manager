@@ -10,6 +10,9 @@
 			<a class="btn btn-outline-secondary" href="{{ route('settings.templates.index') }}">
 				<x-action-content icon="fa-solid fa-box-open" label="Manage template sources" />
 			</a>
+			<a class="btn" href="{{ route('templates.import') }}">
+				<x-action-content icon="fa-solid fa-file-import" label="Import restored template" />
+			</a>
 			<a class="btn btn-primary" href="{{ route('templates.create') }}">
 				<x-action-content icon="fa-solid fa-plus" label="Add template" />
 			</a>

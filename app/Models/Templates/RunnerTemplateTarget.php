@@ -26,6 +26,7 @@ class RunnerTemplateTarget extends Pivot
             'build_memory_mb' => 'integer',
             'build_disk_gb' => 'integer',
             'last_built_at' => 'datetime',
+            'imported_at' => 'datetime',
         ];
     }
 

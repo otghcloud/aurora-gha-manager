@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\Builds\BuildResult;
 use App\Enums\BuildStatus;
 use App\Enums\PoolOs;
 use App\Enums\RunnerState;
@@ -14,12 +15,18 @@ use App\Models\Pools\Pool;
 use App\Models\Runners\Runner;
 use App\Models\Templates\RetiredTemplateVmid;
 use App\Models\Templates\RunnerTemplate;
+use App\Services\Builds\ImageBuildFinalizer;
 use App\Services\Builds\TemplateCatalogEntry;
 use App\Services\Builds\TemplateRebuilder;
 use App\Services\SettingsRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use OTGH\GHARM\Packer\PackerBuilder;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -87,6 +94,9 @@ class TemplateRebuildTest extends TestCase
 
     public function test_promoting_a_build_swaps_the_vmid_and_retires_the_old_one(): void
     {
+        $this->template->targetMappings()->updateExistingPivot($this->target->id, [
+            'imported_storage' => 'shared', 'imported_at' => now(),
+        ]);
         $build = $this->makeBuild(802);
 
         app(TemplateRebuilder::class)->promote($build, 802);
@@ -95,6 +105,9 @@ class TemplateRebuildTest extends TestCase
 
         $this->assertSame(802, $mapping->template_vmid);
         $this->assertSame(2, $mapping->generation);
+        $this->assertNull($mapping->imported_at);
+        $this->assertNull($mapping->imported_storage);
+        $this->assertNotNull($mapping->last_built_at);
 
         $retired = RetiredTemplateVmid::firstOrFail();
         $this->assertSame(801, $retired->vmid);
@@ -112,6 +125,151 @@ class TemplateRebuildTest extends TestCase
 
         $this->assertSame(805, $this->template->fresh()->targetMappings()->firstOrFail()->pivot->template_vmid);
         $this->assertSame(0, RetiredTemplateVmid::count());
+    }
+
+    #[DataProvider('templateNoteBuilds')]
+    public function test_successful_build_notes_include_the_recorded_version_and_utc_provenance(?string $builder, ?string $version): void
+    {
+        $this->travelTo(now()->utc()->setDate(2026, 11, 19)->setTime(22, 30));
+        $build = $this->makeBuild(805);
+        $build->update(['builder_type' => $builder, 'version' => $version, 'started_at' => now()->subHour()]);
+        $existing = "Packer-generated description.\n\nOperator notes: preserve these.";
+        Http::preventStrayRequests();
+        Http::fake(fn (Request $request) => Http::response(['data' => $request->method() === 'GET'
+            ? ['description' => $existing, 'digest' => 'current-config-digest']
+            : null]));
+
+        app(ImageBuildFinalizer::class)->complete($build, new BuildResult(true, 0, 806));
+
+        Http::assertSent(function (Request $request) use ($existing, $build, $builder, $version): bool {
+            if ($request->method() !== 'PUT') {
+                return false;
+            }
+
+            $this->assertStringEndsWith('/qemu/806/config', $request->url());
+            $this->assertSame(['description', 'digest'], array_keys($request->data()));
+            $this->assertSame('current-config-digest', $request['digest']);
+            $this->assertStringStartsWith($existing."\n\n", $request['description']);
+            $this->assertSame(1, preg_match('/\n(    \{.*\n    \})\n/s', $request['description'], $matches));
+            $metadata = json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
+            $this->assertSame([
+                'managed_by' => 'pmx-gha-manager',
+                'template' => 'ubuntu-slim',
+                'catalog_id' => 'ubuntu-24.04-proxmox-x64',
+                'image_version' => $version ?? 'unknown',
+                'builder' => $builder ?? 'unknown',
+                'build_id' => $build->id,
+                'node' => 'pve',
+                'template_vmid' => 806,
+                'started_at' => '2026-11-19T21:30:00+00:00',
+                'built_at' => '2026-11-19T22:30:00+00:00',
+            ], $metadata);
+            $this->assertStringNotContainsString('secret', $request['description']);
+
+            return true;
+        });
+        $this->assertSame(BuildStatus::Succeeded, $build->fresh()->status);
+        $this->assertSame(806, $this->template->targetMappings()->firstOrFail()->pivot->template_vmid);
+
+        app(ImageBuildFinalizer::class)->complete($build, new BuildResult(true, 0, 806));
+        Http::assertSentCount(2);
+    }
+
+    public static function templateNoteBuilds(): array
+    {
+        return [
+            'Packer' => ['packer', '2026.11.19.1'],
+            'Cloud Image' => ['cloudimage', '2026.11.19.2'],
+            'legacy unknown version' => [null, null],
+        ];
+    }
+
+    public function test_build_notes_replace_only_the_managed_block_and_preserve_surrounding_notes(): void
+    {
+        $build = $this->makeBuild(805);
+        $build->update(['version' => 'new-version']);
+        $prefix = "Operator prefix.\n\n";
+        $suffix = "\n\nOperator suffix.";
+        $existing = $prefix."<!-- aurora-gharm-build:start -->\nOld version\n<!-- aurora-gharm-build:end -->".$suffix;
+        $this->template->update(['name' => 'Ubuntu $1 \literal']);
+        Http::preventStrayRequests();
+        Http::fake(fn (Request $request) => Http::response(['data' => $request->method() === 'GET'
+            ? ['description' => $existing]
+            : null]));
+
+        app(ImageBuildFinalizer::class)->complete($build, new BuildResult(true, 0, 805));
+
+        Http::assertSent(function (Request $request) use ($prefix, $suffix): bool {
+            if ($request->method() !== 'PUT') {
+                return false;
+            }
+
+            $notes = $request['description'];
+            $this->assertSame(['description'], array_keys($request->data()));
+            $this->assertStringStartsWith($prefix, $notes);
+            $this->assertStringEndsWith($suffix, $notes);
+            $this->assertStringContainsString('new-version', $notes);
+            $this->assertStringContainsString('Ubuntu $1 \\\\literal', $notes);
+            $this->assertStringNotContainsString('Old version', $notes);
+            $this->assertSame(1, substr_count($notes, '<!-- aurora-gharm-build:start -->'));
+
+            return true;
+        });
+    }
+
+    #[DataProvider('templateNoteFailures')]
+    public function test_notes_failures_are_reported_without_discarding_the_image_or_stopping_the_batch(string $operation, int $status): void
+    {
+        Queue::fake();
+        Log::spy();
+        $build = $this->makeBuild(805, 'notes-batch', 0);
+        $next = $this->makeBuild(806, 'notes-batch', 1);
+        Http::preventStrayRequests();
+        Http::fake(function (Request $request) use ($operation, $status) {
+            if (($operation === 'read') === ($request->method() === 'GET')) {
+                if ($status === 0) {
+                    throw new ConnectionException('Test connection timeout');
+                }
+
+                return Http::response(['message' => 'Test notes update rejected'], $status);
+            }
+
+            return Http::response(['data' => ['description' => 'Existing notes', 'digest' => 'old-digest']]);
+        });
+
+        app(ImageBuildFinalizer::class)->complete($build, new BuildResult(true, 0, 805));
+
+        $this->assertSame(BuildStatus::Succeeded, $build->fresh()->status);
+        $this->assertSame(805, $this->template->targetMappings()->firstOrFail()->pivot->template_vmid);
+        Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context): bool => $message === 'Template built successfully but Proxmox notes could not be updated'
+            && $context['build'] === $build->id && $context['vmid'] === 805 && $context['error'] !== '');
+        Queue::assertPushed(BuildImageJob::class, fn (BuildImageJob $job): bool => $job->imageBuildId === $next->id);
+    }
+
+    public static function templateNoteFailures(): array
+    {
+        return [
+            'read permission denied' => ['read', 403],
+            'write permission denied' => ['write', 403],
+            'concurrent configuration edit' => ['write', 409],
+            'connection timeout' => ['write', 0],
+        ];
+    }
+
+    public function test_failed_or_cancelled_builds_do_not_write_success_notes(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+        $failed = $this->makeBuild(805);
+        app(ImageBuildFinalizer::class)->complete($failed, new BuildResult(false, 1));
+        $cancelled = $this->makeBuild(806);
+        $cancelled->update(['status' => BuildStatus::Cancelled]);
+        app(ImageBuildFinalizer::class)->complete($cancelled, new BuildResult(true, 0, 806));
+
+        Http::assertNothingSent();
+        $this->assertSame(BuildStatus::Failed, $failed->fresh()->status);
+        $this->assertSame(BuildStatus::Cancelled, $cancelled->fresh()->status);
+        $this->assertSame(801, $this->template->targetMappings()->firstOrFail()->pivot->template_vmid);
     }
 
     public function test_a_sequential_batch_only_starts_the_next_node_when_one_succeeds(): void

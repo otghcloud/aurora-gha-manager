@@ -79,6 +79,7 @@ export default function initNodeStoragePicker() {
             if (!response.ok) throw new Error(result.message || 'Proxmox did not respond.');
             fill('build_iso_storage', result.iso || []);
             fill('build_vm_storage', result.images || []);
+            fill('runner_vm_storage', result.images || []);
             status.textContent = `${(result.iso || []).length} ISO and ${(result.images || []).length} VM storage(s) found.`;
         } catch (error) {
             status.textContent = `Could not list storages (${error.message}).`;
@@ -89,7 +90,8 @@ export default function initNodeStoragePicker() {
 
     const isoSelect = document.getElementById('build_iso_storage');
     const vmSelect = document.getElementById('build_vm_storage');
-    if (isUpdate && ready() && (isoSelect?.options.length <= 1 || vmSelect?.options.length <= 1)) {
+    const runnerVmSelect = document.getElementById('runner_vm_storage');
+    if (isUpdate && ready() && (isoSelect?.options.length <= 1 || vmSelect?.options.length <= 1 || runnerVmSelect?.options.length <= 1)) {
         trigger.click();
     }
 }

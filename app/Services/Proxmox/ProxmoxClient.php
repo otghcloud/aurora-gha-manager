@@ -228,16 +228,18 @@ class ProxmoxClient
     }
 
     /**
-     * Linked clone from a template. Blocks until the Proxmox task completes.
+     * Clone from a template, using a full clone when a destination storage is selected.
+     * Blocks until the Proxmox task completes.
      */
-    public function clone(int $templateVmid, int $vmid, string $name): void
+    public function clone(int $templateVmid, int $vmid, string $name, ?string $storage = null): void
     {
         $payload = array_filter([
             'newid' => $vmid,
             'name' => $name,
-            'full' => 0,
+            'full' => $storage === null ? 0 : 1,
             'target' => $this->node(),
             'pool' => $this->connection->proxmox_resource_pool ?: null,
+            'storage' => $storage,
         ], fn ($value): bool => $value !== null);
 
         $upid = $this->post("/nodes/{$this->node()}/qemu/{$templateVmid}/clone", $payload);

@@ -160,7 +160,12 @@ class Provisioner
             throw new ProvisioningException("Template {$template->name} has no physical VMID on target {$this->target->name}.");
         }
 
-        $this->proxmox->clone($mapping->pivot->template_vmid, $runner->vmid, $runner->runner_name);
+        $this->proxmox->clone(
+            $mapping->pivot->template_vmid,
+            $runner->vmid,
+            $runner->runner_name,
+            $this->target->runner_vm_storage ?: null,
+        );
 
         // Recorded so a later template rebuild can tell which runners are running the old image.
         $runner->forceFill(['source_template_vmid' => $mapping->pivot->template_vmid])->save();

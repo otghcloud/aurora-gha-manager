@@ -30,7 +30,9 @@ class ProxmoxTargetTest extends TestCase
     {
         $this->get(route('nodes.create'))
             ->assertOk()
-            ->assertSee('Create node');
+            ->assertSee('Create node')
+            ->assertSee('Template Storage')
+            ->assertSee('Runner VM Storage');
     }
 
     public function test_standalone_target_detail_page_renders(): void
@@ -62,6 +64,7 @@ class ProxmoxTargetTest extends TestCase
             'template_vmid_range_end' => 8999,
             'runner_vmid_range_start' => 9000,
             'runner_vmid_range_end' => 9999,
+            'runner_vm_storage' => 'runner-ssd',
             'enabled' => true,
             'proxmox_verify_tls' => false,
         ])->assertRedirect(route('nodes.index'));
@@ -70,6 +73,7 @@ class ProxmoxTargetTest extends TestCase
             'name' => 'PVE 01',
             'slug' => 'pve-01',
             'proxmox_node' => 'pve',
+            'runner_vm_storage' => 'runner-ssd',
         ]);
 
         $this->assertSame('secret', ProxmoxTarget::firstOrFail()->proxmox_token_secret);

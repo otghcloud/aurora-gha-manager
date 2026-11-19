@@ -2,6 +2,7 @@
 
 namespace App\DataTables\Builds;
 
+use App\Enums\BuildStatus;
 use App\Helpers\DataTableHelpers;
 use App\Models\Builds\ImageBuild;
 use App\Services\Builds\TemplateCatalog;
@@ -68,7 +69,16 @@ class BuildsDataTable extends DataTable
      */
     public function query(ImageBuild $model): QueryBuilder
     {
-        return $model->newQuery()->with(['environment', 'runnerTemplate', 'proxmoxTarget', 'triggeredBy']);
+        $template = request()->input('template');
+        $node = request()->input('node');
+        $status = request()->input('status');
+        $status = is_numeric($status) ? (int) $status : null;
+
+        return $model->newQuery()
+            ->with(['environment', 'runnerTemplate', 'proxmoxTarget', 'triggeredBy'])
+            ->when(is_numeric($template) && (int) $template > 0, fn (QueryBuilder $query) => $query->where('runner_template_id', (int) $template))
+            ->when(is_numeric($node) && (int) $node > 0, fn (QueryBuilder $query) => $query->where('proxmox_target_id', (int) $node))
+            ->when(in_array($status, array_column(BuildStatus::cases(), 'value'), true), fn (QueryBuilder $query) => $query->where('status', $status));
     }
 
     /** Build the DataTable client configuration. */
@@ -77,7 +87,11 @@ class BuildsDataTable extends DataTable
         return $this->builder()
             ->setTableId('dataTable')
             ->columns($this->getColumns())
-            ->minifiedAjax()
+            ->minifiedAjax('', null, [
+                'template' => '$("#filter-template").val()',
+                'node' => '$("#filter-node").val()',
+                'status' => '$("#filter-status").val()',
+            ])
             ->orderBy(6, 'desc')
             ->responsive(true)
             ->serverSide(true);

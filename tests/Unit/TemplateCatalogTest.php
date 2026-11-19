@@ -32,7 +32,7 @@ class TemplateCatalogTest extends TestCase
                         'type' => 'cloudimage',
                         'path' => 'templates/ubuntu/ubuntu-slim/cloudimage',
                         'build_manifest' => 'templates/ubuntu/ubuntu-slim/cloudimage/build.json',
-                        'provisioner' => ['runner_images_directory' => 'images/ubuntu-slim', 'scripts_root_required' => true],
+                        'provisioner' => ['runner_images_directory' => 'images/ubuntu-slim', 'runner_directory' => '/opt/custom-runner', 'scripts_root_required' => true],
                     ],
                     'packer' => [
                         'buildable' => true,
@@ -40,7 +40,7 @@ class TemplateCatalogTest extends TestCase
                         'type' => 'packer',
                         'path' => 'templates/ubuntu/ubuntu-slim/packer',
                         'build_manifest' => 'templates/ubuntu/ubuntu-slim/packer/build.json',
-                        'provisioner' => ['runner_images_directory' => 'images/ubuntu-slim', 'scripts_root_required' => true],
+                        'provisioner' => ['runner_images_directory' => 'images/ubuntu-slim', 'runner_directory' => '/opt/custom-runner', 'scripts_root_required' => true],
                     ],
                 ],
                 'template_path' => 'templates/ubuntu/ubuntu-slim',
@@ -91,9 +91,19 @@ class TemplateCatalogTest extends TestCase
 
         $this->assertSame('packer', $entry->builderName());
         $this->assertSame('images/ubuntu-slim', $entry->runnerImagesDirectory());
+        $this->assertSame('/opt/custom-runner', $entry->runnerDirectory());
         $this->assertTrue($entry->requiresScriptsRoot());
         $this->assertTrue($entry->isBuildable());
         $this->assertNull($entry->disabledReason());
+    }
+
+    public function test_runner_directory_is_null_when_loading_a_legacy_catalog_entry(): void
+    {
+        $entry = new TemplateCatalogEntry([
+            'builders' => ['packer' => ['provisioner' => ['runner_images_directory' => 'images/ubuntu']]],
+        ]);
+
+        $this->assertNull($entry->runnerDirectory());
     }
 
     public function test_a_cloudimage_only_template_is_not_yet_buildable(): void

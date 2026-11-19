@@ -4,23 +4,22 @@ namespace App\Console\Commands\Logs;
 
 use App\Models\Builds\ImageBuild;
 use App\Models\Builds\LogEntry;
-use App\Models\GitHub\WorkflowJob;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Deletes on-disk log files whose contents are already stored in the database.
+ * Deletes completed build-log files whose contents are already stored in the database.
  *
  * Not scheduled yet - run manually until the retention behaviour has been agreed.
  */
 /**
- * Removes persisted build and job log files that are no longer needed.
+ * Removes persisted build log files that are no longer needed.
  */
 class LogsPruneFilesCommand extends Command
 {
     protected $signature = 'logs:prune-files {--dry-run : List the files that would be deleted}';
 
-    protected $description = 'Delete build and job log files that have already been copied into the database';
+    protected $description = 'Delete completed build log files that have already been copied into the database';
 
     /** Prune persisted build and job log files. */
     public function handle(): int
@@ -28,8 +27,11 @@ class LogsPruneFilesCommand extends Command
         $dryRun = (bool) $this->option('dry-run');
         $deleted = 0;
 
-        $deleted += $this->prune(ImageBuild::query()->whereNotNull('log_path'), LogEntry::CHANNEL_BUILD, $dryRun);
-        $deleted += $this->prune(WorkflowJob::query()->whereNotNull('log_path'), LogEntry::CHANNEL_JOB, $dryRun);
+        $deleted = $this->prune(
+            ImageBuild::query()->whereNotNull('log_path')->whereNotNull('finished_at'),
+            LogEntry::CHANNEL_BUILD,
+            $dryRun,
+        );
 
         $this->components->info($dryRun
             ? "{$deleted} log file(s) would be deleted."

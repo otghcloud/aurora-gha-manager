@@ -63,6 +63,14 @@ class RunnerTemplate extends Model
         return 'tpl-'.Str::slug($this->name);
     }
 
+    /** Return the declared runner install directory, falling back for older catalogs. */
+    public function runnerDirectory(): string
+    {
+        $entry = app(TemplateCatalog::class)->entryForId($this->template_catalog_id);
+
+        return $entry?->runnerDirectory() ?? $this->os->defaultRunnerDir();
+    }
+
     /**
      * Ids of the nodes this template has a usable image on; runners cannot spawn anywhere else.
      *

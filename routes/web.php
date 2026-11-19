@@ -17,6 +17,7 @@ use App\Http\Controllers\Settings\GeneralController;
 use App\Http\Controllers\Settings\JobsController;
 use App\Http\Controllers\Settings\RunnersController;
 use App\Http\Controllers\Settings\TemplatesController;
+use App\Http\Controllers\Settings\TemplateSourcesController;
 use App\Http\Controllers\Settings\UserController;
 use App\Http\Controllers\Setup\SetupController;
 use App\Http\Controllers\Webhooks\WebhookController;
@@ -115,6 +116,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/templates/check-updates', [TemplatesController::class, 'checkUpdates'])->name('templates.check-updates');
         Route::post('/templates/download-update', [TemplatesController::class, 'downloadUpdate'])->name('templates.download-update');
         Route::post('/templates/versions/{version}/activate', [TemplatesController::class, 'activateVersion'])->name('templates.activate-version');
+        Route::post('/templates/sources/import', [TemplateSourcesController::class, 'import'])->name('templates.sources.import');
         Route::resource('templates/credentials', CredentialController::class)->except(['show'])->names('templates.credentials');
         Route::post('/templates/credentials/default', [CredentialController::class, 'ensureDefault'])->name('templates.credentials.default');
 

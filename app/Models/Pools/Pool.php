@@ -71,13 +71,10 @@ class Pool extends Model
         return $query->where('enabled', true);
     }
 
-    /**
-     * Baked into the template image, so it is always the OS default.
-     */
-    /** Return the runner installation directory for this pool's OS. */
+    /** Return the runner installation directory declared by the template catalog. */
     public function runnerDirectory(): string
     {
-        return $this->runnerTemplate->os->defaultRunnerDir();
+        return $this->runnerTemplate->runnerDirectory();
     }
 
     /** Count active runners across all targets. */

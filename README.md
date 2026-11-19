@@ -24,7 +24,13 @@ Open the address in a browser and the setup wizard will guide you through the re
 
 ## Documentation
 
-Documentation is in the works and will available in due course.
+Operational documentation:
+
+- [Cloud Image build operations](docs/cloud-image-build-operations.md)
+- [Third-party template sources](docs/templates/README.md)
+- [Runner-pool lifecycle specification](docs/runner-pool-lifecycle.md)
+- [Runtime provisioner and imported artifacts](docs/architecture/runtime-provisioner-contract.md)
+- [Unreleased changes](docs/release-notes.md)
 
 ## Contributing
 

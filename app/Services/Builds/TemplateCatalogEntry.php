@@ -86,6 +86,13 @@ class TemplateCatalogEntry
         return $this->string('builders.'.$this->builderName().'.provisioner.runner_images_directory');
     }
 
+    public function runnerDirectory(): ?string
+    {
+        $directory = $this->builder()['provisioner']['runner_directory'] ?? null;
+
+        return is_string($directory) && $directory !== '' ? $directory : null;
+    }
+
     public function requiresScriptsRoot(): bool
     {
         return ($this->builder()['provisioner']['scripts_root_required'] ?? false) === true;

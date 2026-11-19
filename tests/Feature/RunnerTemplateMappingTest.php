@@ -137,11 +137,17 @@ class RunnerTemplateMappingTest extends TestCase
         $pool->proxmoxTargets()->attach($node->id, ['min_idle_runners' => 0, 'max_concurrent' => 1]);
         ImageBuild::create(['environment_id' => $environment->id, 'runner_template_id' => $template->id, 'proxmox_target_id' => $node->id, 'template_catalog_id' => 'ubuntu-24.04', 'status' => BuildStatus::Queued]);
 
-        foreach ([route('templates.index'), route('builds.index'), route('pools.index')] as $route) {
+        foreach ([route('builds.index'), route('pools.index')] as $route) {
             $this->getJson($route.'?draw=1&start=0&length=10', ['X-Requested-With' => 'XMLHttpRequest'])
                 ->assertOk()
                 ->assertJsonStructure(['draw', 'recordsTotal', 'recordsFiltered', 'data']);
         }
+
+        $this->get(route('templates.index'))
+            ->assertOk()
+            ->assertSee('Ubuntu 24.04')
+            ->assertSee('Manage template sources')
+            ->assertSee('mapped nodes');
     }
 
     public function test_build_now_rejects_an_unconfigured_node_without_server_error(): void

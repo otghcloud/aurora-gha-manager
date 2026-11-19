@@ -43,23 +43,34 @@ timeout fields preserves the current values.
 | Setting | Field | Default | Scope |
 | --- | --- | --- | --- |
 | Proxmox API request | `proxmox_api_timeout` | 120 (2 minutes) | Ordinary core API requests, password authentication, and the node form's storage lookup. |
-| Cloud image disk import | `proxmox_import_timeout` | 3,600 (1 hour) | The synchronous VM configuration request that imports a cloud image into Template Storage. |
-| Proxmox task wait | `proxmox_task_timeout` | 3,600 (1 hour) | Each asynchronous core Proxmox task, including downloads, clones, shutdown and template conversion. |
+| Cloud image disk import | `proxmox_import_timeout` | 3,600 (1 hour) | Waiting for the asynchronous cloud image import task to finish copying into Template Storage. |
+| Proxmox task wait | `proxmox_task_timeout` | 3,600 (1 hour) | Other asynchronous core Proxmox tasks, including downloads, clones, shutdown and template conversion. Disk import uses its own timeout above. |
 | Guest shutdown grace period | `proxmox_shutdown_timeout` | 300 (5 minutes) | Graceful shutdown before Proxmox's `forceStop` takes effect; explicit caller overrides still take precedence. |
 | Cloud image guest IP discovery | `cloudimage_guest_ip_timeout` | 600 (10 minutes) | Waiting for the QEMU guest agent to report the build VM's IPv4 address. |
 | Cloud image SSH operation | `cloudimage_ssh_timeout` | 600 (10 minutes) | SSH/SFTP operations for bootstrap, result/log polling, and restart recovery; not the detached guest script's runtime. |
 | Cloud image guest build wait | `cloudimage_build_timeout` | 43,200 (12 hours) | Waiting for the detached guest build result after bootstrap. |
 
-The HTTP API and disk-import timeouts previously shared a 30-second limit. Import
-uses `PUT /nodes/{node}/qemu/{vmid}/config` with `import-from`; it can remain busy
-copying a disk without returning an asynchronous task identifier. Increasing only
-the task wait therefore does not fix a 30-second HTTP timeout during this operation.
-Ordinary requests retain their own, shorter limit after import completes.
+Import uses `POST /nodes/{node}/qemu/{vmid}/config` with `import-from`, which
+starts a background Proxmox `qmconfig` task and returns its UPID. The manager polls
+that task until completion before resizing the disk, configuring cloud-init, or
+booting the VM. Task failure is reported as a build failure. The submission and
+each status request use the ordinary API request timeout; the overall task wait
+uses the separate disk-import timeout, not the general task timeout.
 
-A client timeout does not cancel Proxmox's operation. Check the VM and task/daemon
-logs before retrying or deleting it: an import may still hold the VM configuration
-lock, so immediate cleanup can fail with a lock timeout. These settings do not
-change Proxmox's own lock-acquisition limits or provide automatic import retries.
+Earlier versions used synchronous `PUT .../config`, first with a shared 30-second
+client timeout and later a separate, longer import timeout. Even with that longer
+client limit, Proxmox's HTTP proxy could return HTTP 596 while the import continued
+on the node. Immediate cleanup then contended for the still-held VM lock. Using the
+asynchronous API avoids holding that HTTP connection open for the entire copy.
+Proxmox itself recommends `POST` for configuration changes involving storage
+allocation; see the [QEMU configuration API](https://pve.proxmox.com/pve-docs/api-viewer/index.html#/nodes/{node}/qemu/{vmid}/config).
+
+An import polling deadline or HTTP failure does not cancel Proxmox's operation.
+Check the VM and task/daemon logs before retrying or deleting it: an import may
+still hold the VM configuration lock, so immediate cleanup can fail with a lock
+timeout. Do not retry the import or forcibly unlock/delete the VM while its task
+is running. These settings do not change Proxmox's own lock-acquisition limits or
+provide automatic import retries.
 
 Keep the task wait comfortably above the shutdown grace period and size all waits
 for the node's storage performance. Polling deadlines are checked between operations:
@@ -93,6 +104,8 @@ lock to the released version, then deploy the manager with its migration and
 restart workers. Editing a sibling plugin checkout does not update the installed
 Composer package. The core API/import/task/shutdown settings apply independently;
 they do not reconfigure HTTP calls or timeouts owned by external Packer processes.
+The asynchronous disk-import fix is core-only and does not require a plugin release
+or a new migration. Deploy the updated manager and restart its build workers.
 
 ## Build API reachability
 

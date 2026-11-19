@@ -52,7 +52,7 @@
 				<div class="row g-3">
 					@foreach ([
 						'proxmox_api_timeout' => ['Proxmox API request', 'Ordinary API requests and authentication. Default: 120 seconds.'],
-						'proxmox_import_timeout' => ['Cloud image disk import', 'Synchronous image copy to Template Storage. Default: 3,600 seconds (1 hour).'],
+						'proxmox_import_timeout' => ['Cloud image disk import', 'Wait for the asynchronous image import to Template Storage. Default: 3,600 seconds (1 hour).'],
 						'proxmox_task_timeout' => ['Proxmox task wait', 'Wait for downloads, clones, and other asynchronous tasks. Default: 3,600 seconds (1 hour).'],
 						'proxmox_shutdown_timeout' => ['Guest shutdown grace period', 'Allow a clean shutdown before Proxmox forces a stop. Default: 300 seconds.'],
 						'cloudimage_guest_ip_timeout' => ['Cloud image guest IP discovery', 'Wait for the build VM to report its IP address. Default: 600 seconds.'],

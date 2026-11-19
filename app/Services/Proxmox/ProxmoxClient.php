@@ -291,10 +291,21 @@ class ProxmoxClient
      */
     public function importCloudImage(int $vmid, string $storage, string $source): void
     {
-        $this->put('/nodes/'.$this->node().'/qemu/'.$vmid.'/config', [
+        // PUT holds the HTTP connection for the entire import and can hit Proxmox's proxy timeout.
+        $upid = $this->post('/nodes/'.$this->node().'/qemu/'.$vmid.'/config', [
             'scsi0' => sprintf('%s:0,import-from=%s,discard=on,ssd=1', $storage, $source),
             'ide2' => $storage.':cloudinit',
-        ], $this->connection->proxmox_import_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_import_timeout']);
+        ]);
+
+        if ($upid === '') {
+            throw new ProxmoxException("Proxmox did not return a task identifier for cloud image import VM {$vmid}");
+        }
+
+        $this->awaitTask(
+            $upid,
+            "import cloud image VM {$vmid}",
+            $this->connection->proxmox_import_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_import_timeout'],
+        );
     }
 
     /** Resize the imported cloud-image disk. */
@@ -493,9 +504,9 @@ class ProxmoxClient
     /**
      * Poll a Proxmox task until it stops, treating benign warnings as success.
      */
-    private function awaitTask(string $upid, string $description): void
+    private function awaitTask(string $upid, string $description, ?int $timeout = null): void
     {
-        $deadline = microtime(true) + ($this->connection->proxmox_task_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_task_timeout']);
+        $deadline = microtime(true) + ($timeout ?? $this->connection->proxmox_task_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_task_timeout']);
 
         while (microtime(true) < $deadline) {
             $task = $this->get("/nodes/{$this->node()}/tasks/".rawurlencode($upid).'/status');
@@ -536,9 +547,9 @@ class ProxmoxClient
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function put(string $path, array $payload = [], ?int $timeout = null): void
+    private function put(string $path, array $payload = []): void
     {
-        $this->unwrap($this->request($timeout)->asForm()->put($this->url($path), $payload), 'PUT '.$path);
+        $this->unwrap($this->request()->asForm()->put($this->url($path), $payload), 'PUT '.$path);
     }
 
     /**
@@ -577,9 +588,9 @@ class ProxmoxClient
         return $response->json('data');
     }
 
-    private function request(?int $timeout = null): PendingRequest
+    private function request(): PendingRequest
     {
-        $timeout ??= $this->connection->proxmox_api_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_api_timeout'];
+        $timeout = $this->connection->proxmox_api_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_api_timeout'];
         $verify = $this->connection->proxmox_verify_tls
             ? ($this->connection->proxmox_ca_bundle ?: true)
             : false;

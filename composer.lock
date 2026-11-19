@@ -2633,16 +2633,16 @@
         },
         {
             "name": "otghcloud/aurora-gha-plugin-cloudimage",
-            "version": "v1.1.2",
+            "version": "v1.1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage.git",
-                "reference": "71e079a108949cf8418a8a12bcb0dc53c99aa64e"
+                "reference": "b64141db90b8f3dc0966f0936c5ca4d447a5a042"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-cloudimage/zipball/71e079a108949cf8418a8a12bcb0dc53c99aa64e",
-                "reference": "71e079a108949cf8418a8a12bcb0dc53c99aa64e",
+                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-cloudimage/zipball/b64141db90b8f3dc0966f0936c5ca4d447a5a042",
+                "reference": "b64141db90b8f3dc0966f0936c5ca4d447a5a042",
                 "shasum": ""
             },
             "require": {
@@ -2669,22 +2669,22 @@
             "description": "Cloud image builder plugin for Proxmox GHA Manager",
             "support": {
                 "issues": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage/issues",
-                "source": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage/tree/v1.1.2"
+                "source": "https://github.com/otghcloud/aurora-gha-plugin-cloudimage/tree/v1.1.3"
             },
-            "time": "2026-11-08T22:41:56+00:00"
+            "time": "2026-11-19T19:38:39+00:00"
         },
         {
             "name": "otghcloud/aurora-gha-plugin-packer",
-            "version": "v1.0.2",
+            "version": "v1.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/otghcloud/aurora-gha-plugin-packer.git",
-                "reference": "6addf7327ca78fce365ae08503f83ed2a427fca7"
+                "reference": "7f4dfef762f0f9910e1f6170746ea82780b6f8fb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-packer/zipball/6addf7327ca78fce365ae08503f83ed2a427fca7",
-                "reference": "6addf7327ca78fce365ae08503f83ed2a427fca7",
+                "url": "https://api.github.com/repos/otghcloud/aurora-gha-plugin-packer/zipball/7f4dfef762f0f9910e1f6170746ea82780b6f8fb",
+                "reference": "7f4dfef762f0f9910e1f6170746ea82780b6f8fb",
                 "shasum": ""
             },
             "require": {
@@ -2711,9 +2711,9 @@
             "description": "Packer builder plugin for Proxmox GHA Manager",
             "support": {
                 "issues": "https://github.com/otghcloud/aurora-gha-plugin-packer/issues",
-                "source": "https://github.com/otghcloud/aurora-gha-plugin-packer/tree/v1.0.2"
+                "source": "https://github.com/otghcloud/aurora-gha-plugin-packer/tree/v1.0.3"
             },
-            "time": "2026-11-19T01:30:05+00:00"
+            "time": "2026-11-19T19:40:28+00:00"
         },
         {
             "name": "paragonie/constant_time_encoding",
@@ -7062,20 +7062,20 @@
         },
         {
             "name": "laravel/pao",
-            "version": "v1.1.5",
+            "version": "v1.1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/pao.git",
-                "reference": "620424f1ce744d96937fb6be60a94793e79b67ad"
+                "reference": "1266f9ccd0f97105983e9d88ffcedb844b8d4898"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/pao/zipball/620424f1ce744d96937fb6be60a94793e79b67ad",
-                "reference": "620424f1ce744d96937fb6be60a94793e79b67ad",
+                "url": "https://api.github.com/repos/laravel/pao/zipball/1266f9ccd0f97105983e9d88ffcedb844b8d4898",
+                "reference": "1266f9ccd0f97105983e9d88ffcedb844b8d4898",
                 "shasum": ""
             },
             "require": {
-                "laravel/agent-detector": "^2.0.2",
+                "laravel/agent-detector": "^2.0.5",
                 "php": "^8.3"
             },
             "conflict": {
@@ -7086,14 +7086,14 @@
             },
             "require-dev": {
                 "brianium/paratest": "^7.20.0",
-                "laravel/pint": "^1.30.5",
-                "orchestra/testbench": "^10.11.0 || ^11.2.0",
-                "pestphp/pest": "^4.7.8 || ^5.1.4",
-                "pestphp/pest-plugin-type-coverage": "^4.0.4 || ^5.0.2",
-                "phpstan/phpstan": "^2.2.13",
-                "rector/rector": "^2.6.6",
-                "symfony/process": "^7.4.13 || ^8.1.6",
-                "symfony/var-dumper": "^7.4.15 || ^8.1.6"
+                "laravel/pint": "^1.32.3",
+                "orchestra/testbench": "^10.11.0 || ^11.3.0",
+                "pestphp/pest": "^4.7.8 || ^5.2.1",
+                "pestphp/pest-plugin-type-coverage": "^4.0.6 || ^5.0.2",
+                "phpstan/phpstan": "^2.3.7",
+                "rector/rector": "^2.8.5",
+                "symfony/process": "^7.4.13 || ^8.1.10",
+                "symfony/var-dumper": "^7.4.15 || ^8.1.10"
             },
             "type": "library",
             "extra": {
@@ -7143,7 +7143,7 @@
                 "issues": "https://github.com/laravel/pao/issues",
                 "source": "https://github.com/laravel/pao"
             },
-            "time": "2026-09-07T14:48:06+00:00"
+            "time": "2026-11-19T13:50:51+00:00"
         },
         {
             "name": "laravel/pint",
@@ -7955,16 +7955,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "13.4.7",
+            "version": "13.4.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c"
+                "reference": "291e66a76eb39f2fb8f880d38edc30dbd7acd9a2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
-                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/291e66a76eb39f2fb8f880d38edc30dbd7acd9a2",
+                "reference": "291e66a76eb39f2fb8f880d38edc30dbd7acd9a2",
                 "shasum": ""
             },
             "require": {
@@ -8035,7 +8035,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.7"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.8"
             },
             "funding": [
                 {
@@ -8043,7 +8043,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-11-13T11:10:10+00:00"
+            "time": "2026-11-19T12:17:15+00:00"
         },
         {
             "name": "sebastian/cli-parser",

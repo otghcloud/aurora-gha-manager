@@ -69,11 +69,13 @@ class ProxmoxTargetController extends Controller
             'proxmox_verify_tls' => ['boolean'],
             'proxmox_ca_bundle' => ['nullable', 'string', 'max:255'],
             'proxmox_resource_pool' => ['nullable', 'string', 'max:255'],
+            'proxmox_api_timeout' => ['sometimes', 'required', 'integer', 'min:1', 'max:43200'],
         ]);
 
         $data['proxmox_auth_realm'] = $isPasswordAuth ? ProxmoxTarget::AUTH_REALM_PASSWORD : ProxmoxTarget::AUTH_REALM_API_TOKEN;
 
         $existing = ! empty($data['target_id']) ? ProxmoxTarget::find($data['target_id']) : null;
+        $data['proxmox_api_timeout'] ??= $existing?->proxmox_api_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_api_timeout'];
         $secretField = $isPasswordAuth ? 'proxmox_password' : 'proxmox_token_secret';
 
         if (blank($data[$secretField] ?? null) && $existing !== null) {

@@ -26,7 +26,7 @@ class ProxmoxTargetRequest extends FormRequest
         $target = $this->route('target');
         $isPasswordAuth = $this->input('proxmox_auth_realm') === ProxmoxTarget::AUTH_REALM_PASSWORD;
 
-        return [
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required', 'string', 'max:255', 'alpha_dash',
@@ -56,6 +56,12 @@ class ProxmoxTargetRequest extends FormRequest
             'network_bridge' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z][A-Za-z0-9_.-]*$/'],
             'vlan_tag' => ['nullable', 'integer', 'min:1', 'max:4094'],
         ];
+
+        foreach (ProxmoxTarget::TIMEOUT_DEFAULTS as $field => $default) {
+            $rules[$field] = ['sometimes', 'required', 'integer', 'min:1', 'max:43200'];
+        }
+
+        return $rules;
     }
 
     /** Normalize authentication fields before validation. */

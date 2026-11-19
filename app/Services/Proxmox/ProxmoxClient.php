@@ -17,8 +17,6 @@ class ProxmoxClient
 {
     private const TASK_POLL_SECONDS = 2;
 
-    private const TASK_TIMEOUT_SECONDS = 600;
-
     /** Tag applied to every VM this application creates, used for reconciliation. */
     public const MANAGED_TAG = 'gha-runner';
 
@@ -99,6 +97,16 @@ class ProxmoxClient
         return $this->get("/nodes/{$this->node()}/qemu/{$vmid}/config");
     }
 
+    public function updateDescription(int $vmid, string $description, ?string $digest = null): void
+    {
+        $payload = ['description' => $description];
+        if ($digest !== null) {
+            $payload['digest'] = $digest;
+        }
+
+        $this->put("/nodes/{$this->node()}/qemu/{$vmid}/config", $payload);
+    }
+
     /**
      * Storages on this node that can hold the given content type.
      *
@@ -117,7 +125,7 @@ class ProxmoxClient
      */
     public function storagePath(string $storage): string
     {
-        $config = $this->get('/nodes/'.$this->node().'/storage/'.$storage);
+        $config = $this->get('/storage/'.$storage);
         $path = $config['path'] ?? null;
 
         if (is_string($path) && $path !== '') {
@@ -286,7 +294,7 @@ class ProxmoxClient
         $this->put('/nodes/'.$this->node().'/qemu/'.$vmid.'/config', [
             'scsi0' => sprintf('%s:0,import-from=%s,discard=on,ssd=1', $storage, $source),
             'ide2' => $storage.':cloudinit',
-        ]);
+        ], $this->connection->proxmox_import_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_import_timeout']);
     }
 
     /** Resize the imported cloud-image disk. */
@@ -412,10 +420,10 @@ class ProxmoxClient
      * power if the guest doesn't shut down cleanly within `timeoutSeconds`, so this can't hang
      * forever on a guest with a broken shutdown path. Observed behavior in previous releases.
      */
-    public function shutdown(int $vmid, int $timeoutSeconds = 120): void
+    public function shutdown(int $vmid, ?int $timeoutSeconds = null): void
     {
         $upid = $this->post("/nodes/{$this->node()}/qemu/{$vmid}/status/shutdown", [
-            'timeout' => $timeoutSeconds,
+            'timeout' => $timeoutSeconds ?? $this->connection->proxmox_shutdown_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_shutdown_timeout'],
             'forceStop' => 1,
         ]);
 
@@ -487,7 +495,7 @@ class ProxmoxClient
      */
     private function awaitTask(string $upid, string $description): void
     {
-        $deadline = microtime(true) + self::TASK_TIMEOUT_SECONDS;
+        $deadline = microtime(true) + ($this->connection->proxmox_task_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_task_timeout']);
 
         while (microtime(true) < $deadline) {
             $task = $this->get("/nodes/{$this->node()}/tasks/".rawurlencode($upid).'/status');
@@ -528,9 +536,9 @@ class ProxmoxClient
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function put(string $path, array $payload = []): void
+    private function put(string $path, array $payload = [], ?int $timeout = null): void
     {
-        $this->unwrap($this->request()->asForm()->put($this->url($path), $payload), 'PUT '.$path);
+        $this->unwrap($this->request($timeout)->asForm()->put($this->url($path), $payload), 'PUT '.$path);
     }
 
     /**
@@ -569,8 +577,9 @@ class ProxmoxClient
         return $response->json('data');
     }
 
-    private function request(): PendingRequest
+    private function request(?int $timeout = null): PendingRequest
     {
+        $timeout ??= $this->connection->proxmox_api_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_api_timeout'];
         $verify = $this->connection->proxmox_verify_tls
             ? ($this->connection->proxmox_ca_bundle ?: true)
             : false;
@@ -583,12 +592,12 @@ class ProxmoxClient
             ]))
                 ->withCookies(['PVEAuthCookie' => $this->ticket], $this->host())
                 ->withOptions(['verify' => $verify])
-                ->timeout(30);
+                ->timeout($timeout);
         }
 
         return Http::withHeaders([
             'Authorization' => "PVEAPIToken={$this->connection->proxmox_token_id}={$this->connection->proxmox_token_secret}",
-        ])->withOptions(['verify' => $verify])->timeout(30);
+        ])->withOptions(['verify' => $verify])->timeout($timeout);
     }
 
     private function usesPasswordAuth(): bool
@@ -611,7 +620,7 @@ class ProxmoxClient
         }
 
         $response = Http::withOptions(['verify' => $verify])
-            ->timeout(30)
+            ->timeout($this->connection->proxmox_api_timeout ?? ProxmoxTarget::TIMEOUT_DEFAULTS['proxmox_api_timeout'])
             ->asForm()
             ->post($this->url('/access/ticket'), [
                 'username' => $this->connection->proxmox_username,

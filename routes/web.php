@@ -11,6 +11,7 @@ use App\Http\Controllers\Infrastructure\ProxmoxTargetController;
 use App\Http\Controllers\Pools\PoolController;
 use App\Http\Controllers\Runners\RunnerController;
 use App\Http\Controllers\Runners\RunnerTemplateController;
+use App\Http\Controllers\Runners\RunnerTemplateImportController;
 use App\Http\Controllers\Settings\CredentialController;
 use App\Http\Controllers\Settings\DebugController;
 use App\Http\Controllers\Settings\GeneralController;
@@ -69,6 +70,8 @@ Route::middleware('auth')->group(function (): void {
     });
 
     Route::prefix('images')->group(function (): void {
+        Route::get('/templates/import', [RunnerTemplateImportController::class, 'create'])->name('templates.import');
+        Route::post('/templates/import', [RunnerTemplateImportController::class, 'store'])->name('templates.import.store');
         Route::resource('templates', RunnerTemplateController::class)->parameters(['templates' => 'runnerTemplate']);
         Route::post('/templates/{runnerTemplate}/build/{target}', [RunnerTemplateController::class, 'build'])->name('templates.build');
         Route::post('/templates/{runnerTemplate}/rebuild', [RunnerTemplateController::class, 'build'])->name('templates.rebuild');

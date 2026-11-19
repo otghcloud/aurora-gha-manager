@@ -147,6 +147,8 @@ class TemplateRebuilder
                 'version' => $version,
                 'availability_status' => 'available',
                 'last_built_at' => now(),
+                'imported_storage' => null,
+                'imported_at' => null,
             ]);
         });
     }

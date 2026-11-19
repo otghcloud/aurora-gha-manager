@@ -6,6 +6,7 @@
 
 @section('page-actions')
 	<div class="col-auto ms-auto d-print-none"><div class="btn-list">
+		<a class="btn" href="{{ route('templates.import', ['proxmox_target_id' => $target->id]) }}"><x-action-content icon="fa-solid fa-file-import" label="Import restored template" /></a>
 		<form action="{{ route('nodes.test', $target) }}" method="POST">@csrf<button class="btn" type="submit"><x-action-content icon="fa-solid fa-plug-circle-check" label="Test connection" /></button></form>
 		<a class="btn" href="{{ route('nodes.edit', $target) }}"><x-action-content icon="fa-solid fa-pencil" label="Edit" /></a>
 	</div></div>
@@ -21,6 +22,6 @@
 			<dt class="col-5">Capacity</dt><dd class="col-7">{{ $target->current_vm_count }} / {{ $target->max_total_vms }}</dd>
 			<dt class="col-5">Health</dt><dd class="col-7">{{ ucfirst($target->health_status) }}</dd>
 		</dl></div></div></div>
-		<div class="col-lg-7"><div class="card"><div class="card-header"><h3 class="card-title">Template coverage</h3></div><div class="table-responsive"><table class="table card-table table-vcenter"><thead><tr><th>Template</th><th>Physical VMID</th><th>Status</th></tr></thead><tbody>@forelse ($target->runnerTemplates as $template)<tr><td><a href="{{ route('templates.show', $template) }}">{{ $template->name }}</a></td><td>{{ $template->pivot->template_vmid ?? '—' }}</td><td>{{ ucfirst($template->pivot->availability_status ?? 'unavailable') }}</td></tr>@empty<tr><td colspan="3" class="text-secondary">No templates assigned to this node.</td></tr>@endforelse</tbody></table></div></div></div>
+		<div class="col-lg-7"><div class="card"><div class="card-header"><h3 class="card-title">Template coverage</h3></div><div class="table-responsive"><table class="table card-table table-vcenter"><thead><tr><th>Template</th><th>Physical VMID</th><th>Status</th></tr></thead><tbody>@forelse ($target->runnerTemplates as $template)<tr><td><a href="{{ route('templates.show', $template) }}">{{ $template->name }}</a>@if ($template->pivot->imported_at)<div class="text-secondary small">Imported / {{ $template->pivot->imported_storage }}</div>@endif</td><td>{{ $template->pivot->template_vmid ?? '—' }}</td><td>{{ ucfirst($template->pivot->availability_status ?? 'unavailable') }}</td></tr>@empty<tr><td colspan="3" class="text-secondary">No templates assigned to this node.</td></tr>@endforelse</tbody></table></div></div></div>
 	</div></div>
 @endsection

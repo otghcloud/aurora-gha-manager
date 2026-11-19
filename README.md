@@ -27,6 +27,7 @@ Open the address in a browser and the setup wizard will guide you through the re
 Operational documentation:
 
 - [Cloud Image build operations](docs/cloud-image-build-operations.md)
+- [Import an already-restored Proxmox template](docs/restored-template-import.md)
 - [Third-party template sources](docs/templates/README.md)
 - [Runner-pool lifecycle specification](docs/runner-pool-lifecycle.md)
 - [Runtime provisioner and imported artifacts](docs/architecture/runtime-provisioner-contract.md)

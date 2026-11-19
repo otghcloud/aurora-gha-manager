@@ -7,6 +7,9 @@
 @section('page-actions')
 	<div class="col-auto ms-auto d-print-none">
 		<div class="btn-list">
+			<a class="btn text-nowrap" href="{{ route('templates.import', ['runner_template_id' => $template->id]) }}">
+				<x-action-content icon="fa-solid fa-file-import" label="Import restored template" />
+			</a>
 			@if ($buildableTargets->isNotEmpty())
 				<form action="{{ route('templates.rebuild', $template) }}" class="d-flex align-items-center gap-2" method="POST">
 					@csrf
@@ -71,20 +74,22 @@
 					<div class="card-header"><h3 class="card-title">Node availability</h3></div>
 					<div class="table-responsive">
 						<table class="table card-table table-vcenter">
-							<thead><tr><th>Node</th><th>Template VMID</th><th>Version</th><th>Status</th><th>Last built</th><th></th></tr></thead>
+							<thead><tr><th>Node</th><th>Template VMID</th><th>Version</th><th>Status</th><th>Last built / imported</th><th></th></tr></thead>
 							<tbody>
 								@forelse ($targets as $target)
 									@php
 										$isBuilding = isset($buildingTargetIds[$target->id]);
 										$updateService = app(\App\Services\Templates\TemplateUpdateService::class);
-										$version = $target->pivot->version ?? \App\Services\Templates\TemplateUpdateService::getLocalVersionForId($template->template_catalog_id);
-										$updateVersion = $updateService->getAvailableUpdateVersion($template->template_catalog_id, $target->pivot->version);
+										$isImported = $target->pivot->imported_at !== null;
+										$unknownImportedVersion = $isImported && $target->pivot->version === null;
+										$version = $unknownImportedVersion ? null : ($target->pivot->version ?? \App\Services\Templates\TemplateUpdateService::getLocalVersionForId($template->template_catalog_id));
+										$updateVersion = $unknownImportedVersion ? null : $updateService->getAvailableUpdateVersion($template->template_catalog_id, $target->pivot->version);
 									@endphp
 									<tr>
 										<td>{{ $target->name }}</td>
 										<td>{{ $target->pivot->template_vmid ?? 'Allocated on build' }}</td>
 										<td>
-											{{ $version ?: '—' }}
+											{{ $version ?: ($unknownImportedVersion ? 'Unknown (imported)' : '—') }}
 											@if ($updateVersion)
 												<span class="badge bg-warning-lt ms-1" title="Update available: {{ $updateVersion }}">
 													<i class="fa-solid fa-arrow-up me-1"></i>{{ $updateVersion }} available
@@ -92,7 +97,14 @@
 											@endif
 										</td>
 										<td><span class="badge bg-{{ $isBuilding ? 'blue' : ($target->pivot->availability_status === 'available' ? 'green' : 'secondary') }}-lt">{{ $isBuilding ? 'Building' : ucfirst($target->pivot->availability_status) }}</span></td>
-										<td>{{ $target->pivot->last_built_at?->diffForHumans() ?? 'Never' }}</td>
+										<td>
+											@if ($isImported)
+												<span class="badge bg-azure-lt">Imported</span>
+												<div class="text-secondary small">{{ $target->pivot->imported_at->diffForHumans() }} / {{ $target->pivot->imported_storage }}</div>
+											@else
+												{{ $target->pivot->last_built_at?->diffForHumans() ?? 'Never' }}
+											@endif
+										</td>
 									<td class="text-end">@if ($isBuilding)<button class="btn btn-sm" disabled><x-action-content icon="fa-solid fa-spinner" label="Building" /></button>@elseif ($catalogEntry?->isBuildable() && $target->pivot->build_iso_file && $target->build_iso_storage && $target->build_vm_storage)<form action="{{ route('templates.build', [$template, $target]) }}" class="d-inline-flex align-items-center gap-1" method="POST">@csrf
 										@if ($catalogEntry->builders() !== [])
 											<select class="form-select form-select-sm w-auto" name="builder" title="Build method">

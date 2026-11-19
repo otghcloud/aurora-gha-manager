@@ -10,6 +10,12 @@ template can establish that an artifact is present and structurally usable, but
 does not establish that the manager can create a VM from it or manage that VM's
 runner lifecycle.
 
+Already-restored Proxmox templates can be [registered](../restored-template-import.md)
+against existing runner template definitions. That flow uses the existing Proxmox
+clone-and-launch runtime and requires a prepared runner image and matching
+credentials. It does not enable the general-purpose Prebuilt artifact provider
+described below or claim to verify guest contents through a storage import.
+
 ## Required separation
 
 - **Artifact source** resolves an immutable artifact and its manifest. It validates

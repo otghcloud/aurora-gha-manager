@@ -76,7 +76,7 @@ class RunnerTemplate extends Model
      *
      * @return array<int, int>
      */
-    /** @return array<int, int> Target IDs with completed template builds. */
+    /** @return array<int, int> Target IDs with available built or imported templates. */
     public function builtTargetIds(): array
     {
         return $this->targetMappings()
@@ -136,13 +136,13 @@ class RunnerTemplate extends Model
     /** @return BelongsToMany<ProxmoxTarget, $this> Mapped Proxmox targets. */
     public function proxmoxTargets(): BelongsToMany
     {
-        return $this->targetMappings()->withPivot(['template_vmid', 'generation', 'version', 'build_iso_file', 'build_iso_url', 'build_cores', 'build_memory_mb', 'build_disk_gb', 'availability_status', 'last_built_at']);
+        return $this->targetMappings()->withPivot(['template_vmid', 'generation', 'version', 'build_iso_file', 'build_iso_url', 'build_cores', 'build_memory_mb', 'build_disk_gb', 'availability_status', 'last_built_at', 'imported_storage', 'imported_at']);
     }
 
     public function targetMappings(): BelongsToMany
     {
         return $this->belongsToMany(ProxmoxTarget::class, 'runner_template_target', 'runner_template_id', 'proxmox_target_id')
             ->using(RunnerTemplateTarget::class)
-            ->withPivot(['template_vmid', 'generation', 'version', 'build_iso_file', 'build_iso_url', 'build_cores', 'build_memory_mb', 'build_disk_gb', 'availability_status', 'last_built_at']);
+            ->withPivot(['template_vmid', 'generation', 'version', 'build_iso_file', 'build_iso_url', 'build_cores', 'build_memory_mb', 'build_disk_gb', 'availability_status', 'last_built_at', 'imported_storage', 'imported_at']);
     }
 }

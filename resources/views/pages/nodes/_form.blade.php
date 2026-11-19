@@ -45,6 +45,30 @@
 				<div class="col-12"><button class="btn btn-sm" data-node-storage-load type="button"><x-action-content icon="fa-solid fa-plug-circle-check" label="Load storage options" /></button><span class="text-secondary small ms-2" data-node-storage-status></span></div>
 			</div></div>
 		</div>
+		<div class="card mt-3">
+			<div class="card-header"><h3 class="card-title">Timeouts</h3></div>
+			<div class="card-body">
+				<p class="text-secondary">All values are in seconds (1–43,200). Disk imports and task waits allow more time for slower storage. Changes apply to new operations, not requests already in progress.</p>
+				<div class="row g-3">
+					@foreach ([
+						'proxmox_api_timeout' => ['Proxmox API request', 'Ordinary API requests and authentication. Default: 120 seconds.'],
+						'proxmox_import_timeout' => ['Cloud image disk import', 'Synchronous image copy to Template Storage. Default: 3,600 seconds (1 hour).'],
+						'proxmox_task_timeout' => ['Proxmox task wait', 'Wait for downloads, clones, and other asynchronous tasks. Default: 3,600 seconds (1 hour).'],
+						'proxmox_shutdown_timeout' => ['Guest shutdown grace period', 'Allow a clean shutdown before Proxmox forces a stop. Default: 300 seconds.'],
+						'cloudimage_guest_ip_timeout' => ['Cloud image guest IP discovery', 'Wait for the build VM to report its IP address. Default: 600 seconds.'],
+						'cloudimage_ssh_timeout' => ['Cloud image SSH operation', 'SSH/SFTP bootstrap and recovery operations. Default: 600 seconds.'],
+						'cloudimage_build_timeout' => ['Cloud image guest build wait', 'Wait for the guest build result. Default: 43,200 seconds (12 hours). The separate queue job limit still applies.'],
+					] as $field => [$label, $hint])
+						<div class="col-md-4">
+							<label class="form-label required" for="{{ $field }}">{{ $label }}</label>
+							<input class="form-control @error($field) is-invalid @enderror" id="{{ $field }}" name="{{ $field }}" type="number" min="1" max="43200" required value="{{ old($field, $target->{$field}) }}">
+							<small class="form-hint">{{ $hint }}</small>
+							@error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
+						</div>
+					@endforeach
+				</div>
+			</div>
+		</div>
 	</fieldset>
 
 	<div class="card mt-3"><div class="card-body d-flex justify-content-between align-items-center"><label class="form-check form-switch"><input class="form-check-input" name="enabled" type="checkbox" value="1" @checked(old('enabled', $target->enabled ?? true))><span class="form-check-label">Node enabled</span></label><div><a class="btn btn-link" href="{{ $environment ? route('environments.show', $environment) : route('nodes.index') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ $isUpdate ? 'Save changes' : 'Create node' }}</button></div></div></div>

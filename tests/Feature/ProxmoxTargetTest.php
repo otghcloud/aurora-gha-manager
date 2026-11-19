@@ -139,7 +139,7 @@ class ProxmoxTargetTest extends TestCase
     }
 
     #[DataProvider('httpTimeoutCases')]
-    public function test_http_timeouts_distinguish_disk_import_from_normal_requests(bool $passwordAuth, bool $custom): void
+    public function test_http_requests_use_the_api_timeout_including_import_submission_and_polling(bool $passwordAuth, bool $custom): void
     {
         $target = new ProxmoxTarget([
             'proxmox_url' => 'https://pve.example.com:8006/api2/json',
@@ -152,8 +152,10 @@ class ProxmoxTargetTest extends TestCase
             ...($custom ? ['proxmox_api_timeout' => 77, 'proxmox_import_timeout' => 2400, 'proxmox_shutdown_timeout' => 180] : []),
         ]);
         Http::fake(function (Request $request, array $options) use ($custom) {
-            $import = $request->method() === 'PUT' && isset($request->data()['scsi0']);
-            $this->assertSame($import ? ($custom ? 2400 : 3600) : ($custom ? 77 : 120), $options['timeout']);
+            if (isset($request->data()['scsi0'])) {
+                $this->assertSame('POST', $request->method());
+            }
+            $this->assertSame($custom ? 77 : 120, $options['timeout']);
 
             if (str_ends_with($request->url(), '/access/ticket')) {
                 return Http::response(['data' => ['ticket' => 'ticket', 'CSRFPreventionToken' => 'csrf']]);
@@ -182,6 +184,113 @@ class ProxmoxTargetTest extends TestCase
             'password defaults' => [true, false],
             'password custom' => [true, true],
         ];
+    }
+
+    public function test_cloud_image_import_waits_for_its_task_before_resizing_on_template_storage(): void
+    {
+        $target = new ProxmoxTarget([
+            'proxmox_url' => 'https://pve.example.com:8006/api2/json',
+            'proxmox_node' => 'pve',
+            'build_vm_storage' => 'hdd',
+            'runner_vm_storage' => 'local-lvm',
+            'proxmox_import_timeout' => 10,
+            'proxmox_task_timeout' => 1,
+        ]);
+        $polls = 0;
+        Http::preventStrayRequests();
+        Http::fake(function (Request $request) use (&$polls) {
+            if (str_ends_with($request->url(), '/qemu/102/config')) {
+                $this->assertSame('POST', $request->method());
+                $this->assertSame([
+                    'scsi0' => 'hdd:0,import-from=/mnt/pve/ag/template/iso/ubuntu.img,discard=on,ssd=1',
+                    'ide2' => 'hdd:cloudinit',
+                ], $request->data());
+
+                return Http::response(['data' => 'UPID:import']);
+            }
+
+            if (str_ends_with($request->url(), '/tasks/UPID%3Aimport/status')) {
+                $this->assertSame('GET', $request->method());
+
+                return Http::response(['data' => [
+                    'status' => ++$polls === 1 ? 'running' : 'stopped',
+                    'exitstatus' => 'OK',
+                ]]);
+            }
+
+            $this->assertStringEndsWith('/qemu/102/resize', $request->url());
+            $this->assertSame('PUT', $request->method());
+            $this->assertSame(2, $polls);
+            $this->assertSame(['disk' => 'scsi0', 'size' => '40G'], $request->data());
+
+            return Http::response(['data' => null]);
+        });
+
+        $client = new ProxmoxClient($target);
+        $client->importCloudImage(102, $target->build_vm_storage, '/mnt/pve/ag/template/iso/ubuntu.img');
+        $client->resizeCloudImageDisk(102, '40G');
+
+        Http::assertSentCount(4);
+    }
+
+    public function test_cloud_image_import_reports_a_failed_task(): void
+    {
+        $client = new ProxmoxClient(new ProxmoxTarget([
+            'proxmox_url' => 'https://pve.example.com:8006/api2/json',
+            'proxmox_node' => 'pve',
+        ]));
+        Http::preventStrayRequests();
+        Http::fake([
+            '*/qemu/102/config' => Http::response(['data' => 'UPID:import']),
+            '*/tasks/UPID%3Aimport/status' => Http::response(['data' => [
+                'status' => 'stopped',
+                'exitstatus' => 'disk import failed',
+            ]]),
+        ]);
+
+        $this->expectException(ProxmoxException::class);
+        $this->expectExceptionMessage('Proxmox task failed (import cloud image VM 102): disk import failed');
+
+        $client->importCloudImage(102, 'hdd', '/images/ubuntu.img');
+    }
+
+    public function test_cloud_image_import_polling_uses_the_import_timeout_not_the_general_task_timeout(): void
+    {
+        $client = new ProxmoxClient(new ProxmoxTarget([
+            'proxmox_url' => 'https://pve.example.com:8006/api2/json',
+            'proxmox_node' => 'pve',
+            'proxmox_import_timeout' => 1,
+            'proxmox_task_timeout' => 60,
+        ]));
+        Http::preventStrayRequests();
+        Http::fake([
+            '*/qemu/102/config' => Http::response(['data' => 'UPID:import']),
+            '*/tasks/UPID%3Aimport/status' => Http::sequence()
+                ->push(['data' => ['status' => 'running']])
+                ->push(['data' => ['status' => 'stopped', 'exitstatus' => 'OK']]),
+        ]);
+
+        $this->expectException(ProxmoxException::class);
+        $this->expectExceptionMessage('Timed out waiting for Proxmox task (import cloud image VM 102)');
+
+        $client->importCloudImage(102, 'hdd', '/images/ubuntu.img');
+    }
+
+    public function test_cloud_image_import_rejects_a_missing_task_identifier(): void
+    {
+        $client = new ProxmoxClient(new ProxmoxTarget([
+            'proxmox_url' => 'https://pve.example.com:8006/api2/json',
+            'proxmox_node' => 'pve',
+        ]));
+        Http::preventStrayRequests();
+        Http::fake([
+            '*/qemu/102/config' => Http::response(['data' => null]),
+        ]);
+
+        $this->expectException(ProxmoxException::class);
+        $this->expectExceptionMessage('Proxmox did not return a task identifier for cloud image import VM 102');
+
+        $client->importCloudImage(102, 'hdd', '/images/ubuntu.img');
     }
 
     public function test_task_polling_respects_the_node_timeout(): void

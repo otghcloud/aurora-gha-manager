@@ -10,6 +10,12 @@
 
 ### Build operations
 
+- Cloud Image disk imports now use Proxmox's asynchronous configuration API and
+  wait for its task before resizing or booting the VM. This avoids HTTP 596
+  proxy timeouts during slow imports, including copies to HDD Template Storage.
+  The existing per-node disk-import timeout now controls task completion; ordinary
+  API requests retain their shorter timeout. This is a core-only fix; restart
+  build workers after deploying it.
 - Successful Packer and Cloud Image builds now write their recorded image version,
   template/catalog identity, builder, build ID, node/VMID, and UTC start/completion
   dates to a managed block in Proxmox Notes. Existing notes are preserved. Failed
